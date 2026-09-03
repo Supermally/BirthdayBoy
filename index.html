@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SPLATFEST: OUR STORY</title>
+  
+  <!-- Google Fonts: Press Start 2P & Caveat (weight 600) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Persistent Audio Bar (Top Corner) -->
+  <aside class="audio-control-bar" aria-label="Audio Controls">
+    <div id="audio-ticker" class="audio-ticker" hidden>
+      <span class="ticker-icon">♪</span>
+      <span id="ticker-text" class="ticker-text">AUDIO READY</span>
+    </div>
+    <button id="btn-audio-toggle" class="btn-audio" type="button" aria-label="Toggle Sound">
+      <span id="audio-icon">🔇</span>
+    </button>
+  </aside>
+
+  <!-- Main Container max-width 520px -->
+  <main id="app" class="screen-title-active">
+    
+    <!-- ==================== SCREEN 0: BIRTHDAY LOCKED (§16) ==================== -->
+    <section id="screen-locked" class="game-screen" aria-label="Birthday Countdown Screen" hidden>
+      <div class="locked-content">
+        <header class="locked-header">
+          <p id="locked-subhead" class="locked-subhead">RESTRICTED TRANSMISSION</p>
+          <h1 id="locked-headline" class="locked-headline">SPLATFEST LOCKED</h1>
+          <p id="locked-teaser" class="locked-teaser">A special birthday event is waiting for you...</p>
+        </header>
+
+        <!-- Blurred peek at the photo underneath (§16) -->
+        <div id="locked-photo-peek" class="locked-photo-peek" aria-label="Encrypted Celebration Photo">
+          <img id="locked-peek-img" src="./photos/photo1.jpg" alt="" class="locked-peek-img">
+          <div class="locked-peek-overlay">
+            <span class="lock-icon">🔒</span>
+            <span id="lock-tag" class="lock-tag">DECRYPTION IN PROGRESS</span>
+          </div>
+        </div>
+
+        <!-- Hidden Peek Mascot Cat Sprite (§16 Easter Egg) -->
+        <div id="locked-cat-sprite" class="locked-cat-sprite" role="button" tabindex="0" aria-label="Hold to Peek Photo">
+          <div class="locked-cat-art"></div>
+        </div>
+
+        <!-- Live Countdown Readout (§16) -->
+        <div id="locked-countdown-card" class="locked-countdown-card" role="button" tabindex="0" aria-label="Countdown Readout">
+          <p class="countdown-label">TIME UNTIL UNLOCK</p>
+          <div class="countdown-digits-grid">
+            <div class="digit-box"><span id="lock-days" class="digit-val">00</span><span class="digit-lbl">DAYS</span></div>
+            <div class="digit-box"><span id="lock-hours" class="digit-val">00</span><span class="digit-lbl">HRS</span></div>
+            <div class="digit-box"><span id="lock-mins" class="digit-val">00</span><span class="digit-lbl">MIN</span></div>
+            <div class="digit-box"><span id="lock-secs" class="digit-val">00</span><span class="digit-lbl">SEC</span></div>
+          </div>
+        </div>
+
+        <p id="locked-subtext" class="locked-subtext">Return when the clock strikes zero!</p>
+
+        <!-- Secret Malachi Dev Override Peeking Squid -->
+        <button id="btn-secret-peeker" class="secret-peeker" type="button" aria-label="Curious Peeking Squid" title="???">
+          <div class="peeker-squid-sprite"></div>
+          <span class="peeker-squid-label">DEV?</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 1: TITLE ==================== -->
+    <section id="screen-title" class="game-screen" aria-label="Title Screen">
+      <!-- Ambient drifting ink blobs (spec §6.1) -->
+      <div class="title-ambient-blobs" aria-hidden="true">
+        <div class="ink-blob blob-1"></div>
+        <div class="ink-blob blob-2"></div>
+        <div class="ink-blob blob-3"></div>
+        <div class="ink-blob blob-4"></div>
+        <div class="ink-blob blob-5"></div>
+      </div>
+
+      <div class="title-content">
+        <header class="title-header">
+          <p class="title-subhead">HAPPY BIRTHDAY ZAMAN!</p>
+          <h1 class="title-headline">A SPLATFEST<br>HAS BEEN CALLED!</h1>
+          <p class="title-occasion">TURF BATTLE EDITION</p>
+        </header>
+
+        <!-- Title squid icon with Easter egg click-count (§15) -->
+        <div id="title-squid-hero" class="title-squid-hero" title="Inkling Squad" role="button" tabindex="0" aria-label="Secret Squid Mascot">
+          <div class="hero-squid-art"></div>
+        </div>
+
+        <!-- Undertale / Deltarune Style Ink Color Menu Box (§10 & §13) -->
+        <div class="undertale-menu-box" aria-label="Choose your ink color">
+          <p class="menu-title">SELECT INK COLOR:</p>
+          <div class="swatches-list" id="swatches-container">
+            <!-- Injected dynamically via JS: Reef, Bubblegum, Wasabi, Abyss, Cyan -->
+          </div>
+        </div>
+
+        <div class="title-hero-badge" aria-hidden="true">
+          <div class="badge-inner">
+            <span class="badge-label">READY TO INK</span>
+            <span class="badge-vs" id="title-badge-vs">TEAM ZAMAN vs THE CLOCK</span>
+          </div>
+        </div>
+
+        <div class="title-actions">
+          <button id="btn-start" class="btn-game" type="button">ENTER THE MATCH</button>
+        </div>
+      </div>
+
+      <!-- Squid morph overlay element for transition §6.2 -->
+      <div id="morph-overlay" class="morph-overlay" aria-hidden="true">
+        <div class="morph-squid"></div>
+      </div>
+    </section>
+
+    <!-- ==================== DELTARUNE VESSEL MAKER INTRO ==================== -->
+    <section id="screen-vessel" class="game-screen" aria-label="Vessel Creation Screen" hidden>
+      <div class="vessel-container">
+        <div id="vessel-step-sprite" class="vessel-step">
+          <p class="vessel-prompt">* FIRST. SELECT A VESSEL SHAPE.</p>
+          <div class="vessel-grid" id="vessel-grid" role="radiogroup" aria-label="Vessel Shapes">
+            <button type="button" class="vessel-card active" data-vessel="kraken">
+              <span class="vessel-selector-heart">♥</span>
+              <div class="vessel-preview" id="vessel-preview-kraken"></div>
+              <span class="vessel-name">NEO-KRAKEN</span>
+            </button>
+            <button type="button" class="vessel-card" data-vessel="octo">
+              <span class="vessel-selector-heart">♥</span>
+              <div class="vessel-preview" id="vessel-preview-octo"></div>
+              <span class="vessel-name">CYBER-OCTO</span>
+            </button>
+            <button type="button" class="vessel-card" data-vessel="phantom">
+              <span class="vessel-selector-heart">♥</span>
+              <div class="vessel-preview" id="vessel-preview-phantom"></div>
+              <span class="vessel-name">PHANTOM-SQUID</span>
+            </button>
+          </div>
+          <button type="button" id="btn-vessel-next" class="btn-game vessel-btn">CONFIRM SHAPE</button>
+        </div>
+
+        <div id="vessel-step-name" class="vessel-step" hidden>
+          <p class="vessel-prompt">* EXCELLENT. NOW, BESTOW A NAME UPON YOUR CREATION.</p>
+          <div class="vessel-input-wrapper">
+            <input type="text" id="vessel-name-input" class="vessel-name-input" maxlength="12" value="SHADOW" autocomplete="off" spellcheck="false" />
+          </div>
+
+          <!-- On-Screen Pixel Keyboard for Controller & Touch (§17) -->
+          <div id="vessel-keyboard" class="vessel-keyboard" aria-label="On-Screen Pixel Keyboard">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <button type="button" id="btn-vessel-finish" class="btn-game vessel-btn">FINALIZE VESSEL</button>
+        </div>
+
+        <div id="vessel-step-rejection" class="vessel-step vessel-rejection" hidden>
+          <p id="vessel-rejection-text" class="vessel-rejection-text"></p>
+          <button type="button" id="btn-vessel-accept" class="btn-game vessel-btn" hidden>ACCEPT YOUR DESTINY</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: MATCH ==================== -->
+    <section id="screen-match" class="game-screen" aria-label="Match Screen" hidden>
+      <!-- HUD Row -->
+      <header class="match-hud">
+        <div class="hud-team hud-team-left">
+          <span class="hud-label">TEAM</span>
+          <span class="hud-val hud-coral" id="hud-team-player">ZAMAN</span>
+        </div>
+
+        <div class="hud-timer-container">
+          <span class="hud-label">TIME</span>
+          <span class="hud-timer" id="hud-timer">1:00</span>
+        </div>
+
+        <div class="hud-team hud-team-right">
+          <span class="hud-label">RIVAL</span>
+          <span class="hud-val hud-teal" id="hud-team-rival">THE CLOCK</span>
+        </div>
+      </header>
+
+      <!-- Progress Meter (spec §7 & §5.2) -->
+      <div class="progress-container" aria-label="Turf ink coverage">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+          <div class="progress-rival-fill" id="progress-rival-fill" style="width: 0%;"></div>
+        </div>
+        <div class="progress-meta">
+          <span class="progress-label" id="progress-label-player">YOU: 0%</span>
+          <span class="progress-label-rival" id="progress-label-rival">RIVAL: 0%</span>
+        </div>
+      </div>
+
+      <!-- Playfield: 10x10 Grid & Dual Sprites -->
+      <div class="playfield-wrapper" id="playfield-wrapper">
+        <div id="grid-container" class="grid-board" role="grid" aria-label="10 by 10 inkable turf grid">
+          <!-- 100 tiles injected via JS -->
+        </div>
+
+        <!-- Player Cat-Squid Sprite Container -->
+        <div id="player-sprite" class="cat-squid-sprite player-squid" aria-hidden="true">
+          <!-- Sprite pixel art rendered here -->
+        </div>
+
+        <!-- Rival AI Inkling Sprite Container (§9) -->
+        <div id="rival-sprite" class="cat-squid-sprite rival-squid" aria-hidden="true">
+          <!-- Rival pixel art rendered here -->
+        </div>
+
+        <!-- Arcade Countdown Overlay (spec §6.3) -->
+        <div id="countdown-overlay" class="countdown-overlay" aria-live="assertive">
+          <span id="countdown-text" class="countdown-text"></span>
+        </div>
+
+        <!-- Undertale "DETERMINATION" Beat Overlay (§13) -->
+        <div id="determination-overlay" class="determination-overlay" aria-hidden="true">
+          <span class="determination-word">DETERMINATION</span>
+        </div>
+      </div>
+
+      <!-- On-Screen Touch D-pad (spec §5.2 & §7) -->
+      <nav class="dpad-controller" aria-label="On-screen directional controls">
+        <button type="button" class="dpad-btn dpad-up" data-dir="up" aria-label="Move Up">▲</button>
+        <div class="dpad-middle-row">
+          <button type="button" class="dpad-btn dpad-left" data-dir="left" aria-label="Move Left">◀</button>
+          <div class="dpad-center-hub" aria-hidden="true"></div>
+          <button type="button" class="dpad-btn dpad-right" data-dir="right" aria-label="Move Right">▶</button>
+        </div>
+        <button type="button" class="dpad-btn dpad-down" data-dir="down" aria-label="Move Down">▼</button>
+      </nav>
+    </section>
+
+    <!-- ==================== SCREEN 3: REVEAL ==================== -->
+    <section id="screen-reveal" class="game-screen" aria-label="Reveal Screen" hidden>
+      <header class="reveal-header">
+        <h2 class="reveal-stamp">TURF COMPLETE!</h2>
+        <p class="reveal-subtitle">PHOTO REVEALED</p>
+      </header>
+
+      <!-- Assembled Photo Mosaic Showcase -->
+      <div class="reveal-mosaic-wrapper">
+        <div id="reveal-mosaic" class="grid-board reveal-board">
+          <!-- Cloned or mirror grid settled into completed view -->
+        </div>
+      </div>
+
+      <!-- Nintendo-results-screen style Stat Card with Player vs AI split -->
+      <div class="stat-card">
+        <div class="stat-item">
+          <span class="stat-number stat-player-split" id="stat-player-turf">0%</span>
+          <span class="stat-label stat-label-coral" id="stat-player-label">YOU</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number stat-rival-split" id="stat-rival-turf">0%</span>
+          <span class="stat-label stat-label-teal">RIVAL</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="stat-time">0:47</span>
+          <span class="stat-label stat-label-gold">TIME</span>
+        </div>
+        <div class="stat-item stat-item-wide">
+          <span class="stat-number stat-mvp" id="stat-mvp">ZAMAN</span>
+          <span class="stat-label stat-label-coral">MVP OF THE SPLATFEST</span>
+        </div>
+      </div>
+
+      <div class="reveal-actions">
+        <button id="btn-open-note" class="btn-game" type="button">OPEN YOUR NOTE</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4: NOTE ==================== -->
+    <section id="screen-note" class="game-screen" aria-label="Personal Note Screen" hidden>
+      <div id="note-card-wrapper" class="note-card-wrapper">
+        <!-- Persistent photo thumbnail callback (spec §5.4) -->
+        <div id="note-photo-thumbnail" class="note-photo-thumbnail">
+          <img src="./photos/photo1.jpg" alt="Celebration memory" id="note-thumb-img">
+        </div>
+
+        <!-- Exclusive note card with --blush badge allowed only here -->
+        <div id="note-card" class="note-card">
+          <div class="note-blush-seal" aria-hidden="true">
+            <span class="seal-icon">★</span>
+            <span class="seal-text" id="note-seal-text">SPECIAL AGENT</span>
+          </div>
+
+          <div class="note-message-body" id="note-message-body">
+            <!-- Handwritten text filled via JS / config -->
+          </div>
+        </div>
+
+        <!-- Layered replay button (§12: branches based on playthrough) -->
+        <div class="note-actions">
+          <button id="btn-replay" class="btn-note" type="button">ONE MORE TIME?</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 5: BOSS BATTLE GATE (§20) ==================== -->
+    <section id="screen-boss" class="game-screen" aria-label="Boss Battle Screen" hidden>
+      <div class="boss-arena-content">
+        <header class="boss-header">
+          <p class="boss-subhead">SPLATFEST CLIMAX</p>
+          <h2 class="boss-title">MEGA RIVAL INKLING</h2>
+          <div class="boss-hp-container" aria-label="Boss Health">
+            <span class="hp-label">HP</span>
+            <div class="boss-hp-bar">
+              <div id="boss-hp-fill" class="boss-hp-fill" style="width: 100%;"></div>
+            </div>
+            <span id="boss-hp-hearts" class="boss-hp-hearts">♥♥♥</span>
+          </div>
+        </header>
+
+        <!-- Giant Looming Boss Sprite (§20) -->
+        <div class="boss-sprite-stage">
+          <div id="boss-sprite-large" class="boss-sprite-large" aria-hidden="true">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Boss Undertale Battle Box Arena (§20) -->
+        <div id="boss-battle-box" class="boss-battle-box">
+          <!-- Battle dialogue, timing slider, and dodge arena -->
+          <div id="boss-box-content" class="boss-box-content">
+            <p id="boss-narrative-text" class="boss-narrative-text">* MEGA RIVAL INKLING challenges your final victory!</p>
+            
+            <!-- Timing Strike Gauge within Boss Box -->
+            <div id="boss-strike-zone" class="fight-strike-zone" hidden>
+              <div class="strike-track">
+                <div class="strike-sweet-spot"></div>
+                <div id="boss-strike-cursor" class="strike-cursor"></div>
+              </div>
+              <p class="strike-prompt">STRIKE WHEN IN THE GOLD ZONE!</p>
+            </div>
+
+            <!-- Boss Attack Dodging Arena (Boss Fights Back!) -->
+            <div id="boss-dodge-arena" class="boss-dodge-arena" hidden>
+              <div id="boss-soul" class="boss-soul">♥</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Undertale 4-Action Battle Menu (§20) -->
+        <nav class="boss-action-menu" id="boss-action-menu" aria-label="Battle Actions">
+          <button type="button" class="boss-menu-btn active" data-action="fight" id="boss-btn-fight"><span class="btn-heart">♥</span> FIGHT</button>
+          <button type="button" class="boss-menu-btn" data-action="act" id="boss-btn-act"><span class="btn-heart">♥</span> ACT</button>
+          <button type="button" class="boss-menu-btn" data-action="item" id="boss-btn-item"><span class="btn-heart">♥</span> ITEM</button>
+          <button type="button" class="boss-menu-btn mercy-disabled" data-action="mercy" id="boss-btn-mercy"><span class="btn-heart">♥</span> MERCY</button>
+        </nav>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 6: PHOTO ALBUM & SCRAPBOOK ==================== -->
+    <section id="screen-album" class="game-screen" aria-label="Memory Scrapbook Album" hidden>
+      <div class="album-content">
+        <header class="album-header">
+          <span class="album-badge">★ MEMORY ARCHIVES ★</span>
+          <h1 class="album-headline">OUR STORY</h1>
+          <p class="album-subtitle">Central Park & Beyond — Memories Mapped in Ink</p>
+        </header>
+
+        <!-- Scrapbook Photo & Video Cards Grid -->
+        <div class="album-cards-grid">
+          <!-- Card 1: Central Park Sheep Meadow Skyline -->
+          <article class="polaroid-scrapbook-card" style="--rotation: -2deg;" tabindex="0">
+            <div class="scrapbook-pin gold-pin">★</div>
+            <div class="scrapbook-tape left-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/photo1.jpg" alt="Sitting on the rocks overlooking Central Park skyline" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Central Park, NY — Sheep Meadow</span>
+                <span class="polaroid-date">OCTOBER 2024</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Sitting on the rocks talking about everything and nothing. One of those days I wish I could pause time."
+            </p>
+            <div class="scrapbook-sticker heart-sticker">♡ MEMORY 01 ♡</div>
+          </article>
+
+          <!-- Card 2: Chelsea & The High Line -->
+          <article class="polaroid-scrapbook-card" style="--rotation: 1.5deg;" tabindex="0">
+            <div class="scrapbook-pin teal-pin">★</div>
+            <div class="scrapbook-tape right-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/IMG_2218.jpg" alt="Strolling through Chelsea and the High Line" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Chelsea & High Line, Manhattan</span>
+                <span class="polaroid-date">AUGUST 16, 2026</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Golden afternoon strolling above the city streets with you, laughing at the smallest things."
+            </p>
+            <div class="scrapbook-sticker star-sticker">★ CITY DAYS ★</div>
+          </article>
+
+          <!-- Card 3: Video Reel 1 - Summer Moment -->
+          <article class="scrapbook-video-card" style="--rotation: -1.5deg;" tabindex="0">
+            <div class="scrapbook-pin coral-pin">★</div>
+            <div class="scrapbook-tape left-tape"></div>
+            <div class="polaroid-video-frame">
+              <video class="scrapbook-video" controls playsinline preload="metadata">
+                <source src="./videos/video1.mp4" type="video/mp4">
+                Your browser does not support HTML5 video.
+              </video>
+            </div>
+            <div class="polaroid-caption" style="position: static; background: transparent; padding: 0;">
+              <span class="polaroid-location" style="color: var(--ink-teal);">📍 New York, NY • LIVE CLIP</span>
+              <span class="polaroid-date">AUGUST 2026</span>
+            </div>
+            <p class="scrapbook-note">
+              "A moving memory frozen in time. Press play to relive this moment!"
+            </p>
+            <div class="scrapbook-sticker video-reel-badge">▶ VIDEO REEL 01</div>
+          </article>
+
+          <!-- Card 4: Lincoln Center Plaza -->
+          <article class="polaroid-scrapbook-card" style="--rotation: -2.5deg;" tabindex="0">
+            <div class="scrapbook-pin gold-pin">★</div>
+            <div class="scrapbook-tape right-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/IMG_1942.jpg" alt="Evening at Lincoln Center Plaza" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Lincoln Center Plaza, Manhattan</span>
+                <span class="polaroid-date">AUGUST 19, 2026</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Late night conversations by the fountain. The city never sleeps, and neither do we when we're together."
+            </p>
+            <div class="scrapbook-sticker heart-sticker">♡ MIDNIGHT CHATS ♡</div>
+          </article>
+
+          <!-- Card 5: Long Island City Waterfront -->
+          <article class="polaroid-scrapbook-card" style="--rotation: 2deg;" tabindex="0">
+            <div class="scrapbook-pin teal-pin">★</div>
+            <div class="scrapbook-tape left-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/IMG_2274.jpg" alt="Waterfront breeze looking across the river" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 LIC Waterfront, Queens, NY</span>
+                <span class="polaroid-date">AUGUST 20, 2026</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Looking across the river at the skyline together. Just peaceful and right."
+            </p>
+            <div class="scrapbook-sticker star-sticker">★ WATERFRONT BREEZE ★</div>
+          </article>
+
+          <!-- Card 6: Columbus Circle & Central Park West -->
+          <article class="polaroid-scrapbook-card" style="--rotation: -1.8deg;" tabindex="0">
+            <div class="scrapbook-pin coral-pin">★</div>
+            <div class="scrapbook-tape right-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/IMG_2334.jpg" alt="Walking toward Central Park entrance" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Columbus Circle & CPW</span>
+                <span class="polaroid-date">AUGUST 26, 2026</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Heading into the park together, our favorite sanctuary in the whole bustling city."
+            </p>
+            <div class="scrapbook-sticker heart-sticker">♡ PARK DAYS ♡</div>
+          </article>
+
+          <!-- Card 7: Video Reel 2 - Central Park Afternoon -->
+          <article class="scrapbook-video-card" style="--rotation: 1deg;" tabindex="0">
+            <div class="scrapbook-pin gold-pin">★</div>
+            <div class="scrapbook-tape left-tape"></div>
+            <div class="polaroid-video-frame">
+              <video class="scrapbook-video" controls playsinline preload="metadata">
+                <source src="./videos/video2.mp4" type="video/mp4">
+                Your browser does not support HTML5 video.
+              </video>
+            </div>
+            <div class="polaroid-caption" style="position: static; background: transparent; padding: 0;">
+              <span class="polaroid-location" style="color: var(--gold);">📍 Central Park, NY • LIVE REEL</span>
+              <span class="polaroid-date">AUGUST 28, 2026</span>
+            </div>
+            <p class="scrapbook-note">
+              "Winding down the park paths under the sun, side by side."
+            </p>
+            <div class="scrapbook-sticker video-reel-badge">▶ VIDEO REEL 02</div>
+          </article>
+
+          <!-- Card 8: Central Park — Bethesda Terrace & Fountain -->
+          <article class="polaroid-scrapbook-card" style="--rotation: 2.5deg;" tabindex="0">
+            <div class="scrapbook-pin coral-pin">★</div>
+            <div class="scrapbook-tape right-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/photo2.jpg" alt="Golden hour together at the park" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Central Park, NY — Bethesda Terrace</span>
+                <span class="polaroid-date">GOLDEN HOUR</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "The golden hour light hitting the trees. Looking at you and knowing there's nobody else I'd rather be with."
+            </p>
+            <div class="scrapbook-sticker star-sticker">★ TEAM ZAMAN67 ★</div>
+          </article>
+
+          <!-- Card 9: Under the Bethesda Arches -->
+          <article class="polaroid-scrapbook-card" style="--rotation: -2deg;" tabindex="0">
+            <div class="scrapbook-pin teal-pin">★</div>
+            <div class="scrapbook-tape left-tape"></div>
+            <div class="polaroid-photo-frame">
+              <img src="./photos/IMG_2378.jpg" alt="Under the carved stone arches of Bethesda Terrace" class="scrapbook-img" />
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 Bethesda Arcade & Fountain</span>
+                <span class="polaroid-date">AUGUST 28, 2026</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "Under the historic arcade tiles. Every corner of the park holds a memory of you."
+            </p>
+            <div class="scrapbook-sticker heart-sticker">♡ SPECIAL AGENT ♡</div>
+          </article>
+
+          <!-- Card 10: Our Next Adventure -->
+          <article class="polaroid-scrapbook-card next-chapter-card" style="--rotation: -1deg;" tabindex="0">
+            <div class="scrapbook-pin gold-pin">★</div>
+            <div class="polaroid-photo-frame next-chapter-frame">
+              <div class="next-chapter-graphic">
+                <span class="compass-icon">🧭</span>
+                <span class="heart-pulse-icon">❤️</span>
+              </div>
+              <div class="polaroid-caption">
+                <span class="polaroid-location">📍 The Whole World With You</span>
+                <span class="polaroid-date">CHAPTER: FOREVER</span>
+              </div>
+            </div>
+            <p class="scrapbook-note">
+              "To every city we haven't explored yet, every late night study session, and every little moment in between."
+            </p>
+            <div class="scrapbook-sticker adventure-sticker">✈️ TO BE CONTINUED...</div>
+          </article>
+        </div>
+
+        <footer class="album-actions">
+          <button id="btn-album-back-note" class="btn-game btn-album" type="button">BACK TO NOTE</button>
+          <button id="btn-album-replay" class="btn-game btn-album-accent" type="button">REPLAY SPLATFEST 🎮</button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- Deltarune Style Bottom-Anchored Dialogue Box (§13 & §15) -->
+    <div id="dialogue-box" class="deltarune-dialogue-box" hidden aria-live="polite">
+      <div class="dialogue-inner">
+        <p id="dialogue-text" class="dialogue-text"></p>
+        <span class="dialogue-cursor" aria-hidden="true">▾</span>
+      </div>
+    </div>
+
+    <!-- Mid-Match FIGHT Interstitial Overlay (§19) -->
+    <div id="fight-interstitial" class="fight-interstitial" hidden aria-modal="true" role="dialog">
+      <div class="fight-box-container">
+        <header class="fight-header">
+          <span class="fight-tag">TURF CLASH!</span>
+        </header>
+
+        <!-- Looming Rival Combatant -->
+        <div class="fight-rival-stage">
+          <div id="fight-rival-sprite" class="fight-rival-sprite" aria-hidden="true"></div>
+          <p id="fight-rival-dialogue" class="fight-rival-dialogue">* "You think this turf is yours?!"</p>
+        </div>
+
+        <!-- Timed Strike Gauge (§19) -->
+        <div class="fight-strike-zone">
+          <div class="strike-track">
+            <div class="strike-sweet-spot"></div>
+            <div id="fight-strike-cursor" class="strike-cursor"></div>
+          </div>
+          <p class="strike-prompt">PRESS [SPACE / (A) / TAP] IN THE SWEET SPOT!</p>
+          <button id="btn-fight-strike" class="btn-strike-action" type="button">STRIKE NOW!</button>
+        </div>
+
+        <p id="fight-result-text" class="fight-result-text"></p>
+      </div>
+    </div>
+
+    <!-- TV-Static Glitch Cut Transition Overlay (§19 & §13) -->
+    <div id="tv-static-cut" class="tv-static-cut" hidden aria-hidden="true">
+      <div class="static-noise"></div>
+    </div>
+
+    <!-- Small Control Info Key Hints Bar (§17) -->
+    <footer id="input-help-bar" class="input-help-bar" aria-label="Control Hints">
+      <div class="input-help-inner">
+        <span id="input-help-icon" class="input-help-icon">🎮</span>
+        <span id="input-help-text" class="input-help-text">[D-PAD / L-STICK] MOVE • (A) SELECT • (B) BACK</span>
+      </div>
+    </footer>
+
+    <!-- Secret Early Unlock Modal for Malachi -->
+    <div id="modal-secret-override" class="modal-secret-override" hidden aria-modal="true" role="dialog">
+      <div class="secret-terminal-box">
+        <header class="terminal-header">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">TERMINAL: MALACHI_OVERRIDE</span>
+        </header>
+        <div class="terminal-body">
+          <p class="terminal-prompt">* RESTRICTED ACCESS // OPERATOR CLEARANCE REQUIRED</p>
+          <p class="terminal-subprompt">* Enter the secret override passcode:</p>
+          <div class="terminal-input-wrapper">
+            <span class="terminal-caret">&gt;</span>
+            <input id="secret-passcode-input" type="text" class="terminal-input" maxlength="16" placeholder="ENTER CODE..." autocomplete="off" spellcheck="false" />
+          </div>
+          <!-- On-screen Pixel Keyboard for Terminal -->
+          <div id="terminal-keyboard" class="terminal-keyboard" aria-label="Terminal Virtual Keyboard"></div>
+
+          <div class="terminal-actions">
+            <button id="btn-submit-override" class="btn-game btn-terminal" type="button">AUTHENTICATE</button>
+            <button id="btn-cancel-override" class="btn-game btn-terminal-cancel" type="button">ABORT</button>
+          </div>
+          <p id="terminal-status" class="terminal-status" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- The "67" Penalty Fake-out Minigame Modal -->
+    <div id="modal-fakeout-67" class="modal-fakeout-67" hidden aria-modal="true" role="dialog">
+      <div class="fakeout-box">
+        <header class="fakeout-header">
+          <h2 class="fakeout-title">⚠️ SYSTEM OVERLOAD! ⚠️</h2>
+          <p class="fakeout-tagline">* YOU REALLY THOUGHT YOU MADE IT HUH?! 😂</p>
+        </header>
+        <p class="fakeout-desc">* In punishment for your impatience, you must ink this 67 penalty grid!</p>
+        <div id="grid-fakeout-67" class="grid-fakeout-67">
+          <!-- 16 mini tiles with laughing faces / 67 -->
+        </div>
+        <div class="fakeout-progress">
+          <span id="fakeout-counter">TILES INKED: 0 / 67</span>
+        </div>
+        <button id="btn-fakeout-surrender" class="btn-game" type="button">OKAY OKAY I'LL WAIT!</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

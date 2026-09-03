@@ -1,0 +1,2776 @@
+/* ==========================================================================
+   SPLATFEST: OUR STORY — CSS SPECIFICATION
+   Strict adherence to color tokens, typography scale, and 5 motion moments.
+   ========================================================================== */
+
+/* --- 1. Color Tokens (§2 & §10) --- */
+:root {
+  --void: #12081f;       /* Page background, deepest layer */
+  --void-2: #1a0f2e;     /* Panel/card backgrounds, one step up */
+  --ink-coral: #ff6b4a;  /* Default/fallback player color, primary buttons */
+  --player-color: #ff6b4a; /* Dynamic player chosen color (§10) */
+  --ink-teal: #2de3c8;   /* Secondary accent — HUD text, rival color */
+  --rival-color: #2de3c8;  /* Rival team fixed color (§9) */
+  --gold: #ffd23f;       /* Stamps, badges, stat card numbers, celebratory */
+  --blush: #ff9ecf;      /* Reserved exclusively for the NOTE screen */
+  --paper: #fdf6ec;      /* Handwritten note card background (warm off-white) */
+  --ink-dark: #241533;   /* Secondary panel color, HUD chrome */
+
+  /* Responsive dynamic grid calculations */
+  --grid-size: min(84vw, 360px, 42vh);
+  --cell-size: calc(var(--grid-size) / 10);
+}
+
+/* --- Base Resets & Global Layout (§4) --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  background-color: var(--void);
+  font-family: 'Press Start 2P', monospace;
+  color: #ffffff;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* Main app shell: single column, centered, max 520px */
+#app {
+  width: 100%;
+  max-width: 520px;
+  min-width: 0;
+  min-height: 100dvh;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Screen state switching */
+.game-screen {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 20px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+[hidden],
+.game-screen[hidden] {
+  display: none !important;
+}
+
+/* Diagonal stripe backdrop for TITLE, REVEAL, and LOCKED screens (§4 & §16) */
+#screen-title,
+#screen-reveal,
+#screen-locked {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--void) 0 60px,
+    var(--void-2) 60px 120px
+  );
+}
+
+/* Flat background for MATCH screen (§4) */
+#screen-match {
+  background: var(--void);
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+/* Instant hard-cut background for NOTE screen (§4, §5.4, §6.5) */
+#screen-note {
+  background: var(--paper); /* Hard cut, no transition property */
+  color: var(--void);
+  justify-content: flex-start;
+  padding: 24px 16px 48px;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   BUTTONS (§7)
+   ========================================================================== */
+
+/* Game Style Button (TITLE / REVEAL) */
+.btn-game {
+  background: var(--ink-coral);
+  color: var(--void);
+  border: 4px solid #ffffff;
+  box-shadow: 6px 6px 0 var(--ink-teal);
+  padding: 16px 32px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  display: inline-block;
+  text-align: center;
+  border-radius: 0;
+  transition: transform 80ms ease, box-shadow 80ms ease; /* under 100ms on press */
+}
+
+.btn-game:active {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 var(--ink-teal);
+}
+
+/* Note Style Button (NOTE screen) */
+.btn-note {
+  background: var(--void-2);
+  color: var(--paper);
+  border: 1px solid var(--ink-dark);
+  box-shadow: none;
+  padding: 14px 30px;
+  border-radius: 6px; /* Soft rounding allowed ONLY on note button */
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  transition: transform 80ms ease, opacity 80ms ease;
+}
+
+.btn-note:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   SCREEN 1: TITLE SPEC (§5.1 & §6.1)
+   ========================================================================== */
+
+/* Ambient drift blobs (§6.1) */
+.title-ambient-blobs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ink-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  opacity: 0.28;
+}
+
+.blob-1 {
+  width: 220px;
+  height: 220px;
+  background: var(--ink-coral);
+  top: 10%;
+  left: -40px;
+  animation: blob-drift-1 10s ease-in-out infinite alternate;
+}
+
+.blob-2 {
+  width: 260px;
+  height: 260px;
+  background: var(--ink-teal);
+  bottom: 12%;
+  right: -50px;
+  animation: blob-drift-2 11s ease-in-out infinite alternate 1.5s;
+}
+
+.blob-3 {
+  width: 170px;
+  height: 170px;
+  background: var(--gold);
+  top: 45%;
+  left: 20%;
+  opacity: 0.2;
+  animation: blob-drift-3 9s ease-in-out infinite alternate 3s;
+}
+
+.blob-4 {
+  width: 190px;
+  height: 190px;
+  background: var(--ink-coral);
+  bottom: 30%;
+  left: -20px;
+  opacity: 0.22;
+  animation: blob-drift-2 12s ease-in-out infinite alternate 2s;
+}
+
+.blob-5 {
+  width: 210px;
+  height: 210px;
+  background: var(--ink-teal);
+  top: 2%;
+  right: 10%;
+  opacity: 0.25;
+  animation: blob-drift-1 8s ease-in-out infinite alternate 0.5s;
+}
+
+/* Animation 1: Ambient Drift (§6.1) */
+@keyframes blob-drift-1 {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(15px, -15px); }
+}
+
+@keyframes blob-drift-2 {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(-15px, 15px); }
+}
+
+@keyframes blob-drift-3 {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(12px, 15px); }
+}
+
+.title-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  text-align: center;
+  padding: 24px 0;
+  flex: 1;
+}
+
+.title-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.title-subhead {
+  font-size: 11px;
+  color: var(--ink-teal);
+  letter-spacing: 2px;
+}
+
+.title-headline {
+  font-size: clamp(20px, 5.5vw, 34px);
+  line-height: 1.35;
+  color: #ffffff;
+  /* Double offset text shadow for chunky layered ink look (§5.1) */
+  text-shadow: 4px 4px 0 var(--ink-coral), 8px 8px 0 var(--ink-teal);
+  max-width: 100%;
+  word-break: break-word;
+  margin: 6px 0;
+}
+
+.title-occasion {
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.title-hero-badge {
+  background: var(--void-2);
+  border: 3px solid #ffffff;
+  padding: 16px 22px;
+  box-shadow: 4px 4px 0 var(--ink-dark);
+}
+
+.badge-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badge-label {
+  font-size: 10px;
+  color: var(--gold);
+}
+
+.badge-vs {
+  font-size: 11px;
+  color: #ffffff;
+}
+
+.title-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Animation 2: TITLE -> MATCH Squid-morph transition (§6.2) */
+.morph-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 99;
+  opacity: 0;
+}
+
+.morph-squid {
+  width: 48px;
+  height: 48px;
+  background-color: var(--ink-coral);
+  clip-path: polygon(50% 0%, 90% 40%, 75% 100%, 55% 85%, 45% 85%, 25% 100%, 10% 40%);
+  transform: scale(0);
+}
+
+.transitioning-to-match #screen-title .title-content {
+  animation: title-shrink 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.transitioning-to-match .morph-overlay {
+  opacity: 1;
+}
+
+.transitioning-to-match .morph-squid {
+  animation: squid-zoom 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes title-shrink {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+
+@keyframes squid-zoom {
+  0%   { transform: scale(0); opacity: 0; }
+  40%  { opacity: 1; }
+  100% { transform: scale(8); opacity: 0; }
+}
+
+/* ==========================================================================
+   SCREEN 2: MATCH SPEC (§5.2)
+   ========================================================================== */
+
+/* HUD Row */
+.match-hud {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.hud-team {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 38%;
+}
+
+.hud-team-left {
+  align-items: flex-start;
+}
+
+.hud-team-right {
+  align-items: flex-end;
+}
+
+.hud-timer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hud-label {
+  font-size: 10px;
+  color: #8f85a3;
+  letter-spacing: 1px;
+}
+
+.hud-coral {
+  color: var(--player-color, var(--ink-coral));
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.hud-teal {
+  color: var(--rival-color, var(--ink-teal));
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.hud-timer {
+  font-size: 16px;
+  color: var(--gold);
+}
+
+/* Progress Meter directly below HUD (§5.2, §7, & §9) */
+.progress-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 22px;
+  background-color: var(--void-2);
+  border: 3px solid #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Player Fill (Left) */
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: var(--player-color, var(--ink-coral));
+  /* Paw print segmented texture overlay (§7) */
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 16px,
+    rgba(18, 8, 31, 0.45) 16px 20px
+  );
+  transition: width 150ms linear;
+  z-index: 2;
+}
+
+/* Rival Fill (Right) (§9) */
+.progress-rival-fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background-color: var(--rival-color, var(--ink-teal));
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 16px,
+    rgba(18, 8, 31, 0.45) 16px 20px
+  );
+  transition: width 150ms linear;
+  z-index: 1;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+}
+
+.progress-label {
+  color: var(--player-color, var(--ink-coral));
+}
+
+.progress-label-rival {
+  color: var(--rival-color, var(--ink-teal));
+}
+
+/* Playfield & Grid Container */
+.playfield-wrapper {
+  position: relative;
+  width: var(--grid-size);
+  height: var(--grid-size);
+  margin: 4px auto 0;
+}
+
+.grid-board {
+  width: var(--grid-size);
+  height: var(--grid-size);
+  border: 4px solid #ffffff; /* Hard 4px white border, no rounding */
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  background-color: var(--void-2);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Individual Grid Tile */
+.grid-tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Photo slice on bottom of tile */
+.tile-photo {
+  position: absolute;
+  inset: 0;
+  background-image: url('./photos/photo1.jpg');
+  background-repeat: no-repeat;
+  background-size: var(--grid-size) var(--grid-size);
+  background-position: calc(-1 * var(--col) * var(--cell-size)) calc(-1 * var(--row) * var(--cell-size));
+  image-rendering: pixelated;
+  opacity: 0;
+}
+
+/* Ink color overlay */
+.tile-ink-wash {
+  position: absolute;
+  inset: 0;
+  background-color: var(--void-2);
+}
+
+/* Animation 4: Player Tile ink + reveal (§6.4 & §9) */
+.grid-tile.inked-player .tile-photo,
+.grid-tile.inked .tile-photo {
+  opacity: 1 !important;
+}
+
+.grid-tile.inked-player .tile-ink-wash,
+.grid-tile.inked .tile-ink-wash {
+  animation: ink-reveal-wash 450ms forwards;
+}
+
+/* Rival Owned Tile (§9: Photo slice hidden under solid teal) */
+.grid-tile.inked-rival .tile-photo {
+  opacity: 0 !important; /* Losing tile to rival visibly hides photo again (§9) */
+}
+
+.grid-tile.inked-rival .tile-ink-wash {
+  animation: rival-ink-pop 200ms forwards;
+}
+
+@keyframes rival-ink-pop {
+  0% {
+    transform: scale(0.8);
+    background-color: var(--rival-color);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    background-color: var(--rival-color);
+    opacity: 0.92;
+  }
+}
+
+@keyframes ink-reveal-wash {
+  0% {
+    transform: scale(0.8);
+    background-color: var(--player-color, var(--ink-coral));
+    opacity: 1;
+  }
+  33% {
+    transform: scale(1);
+    background-color: var(--player-color, var(--ink-coral));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    background-color: var(--player-color, var(--ink-coral));
+    opacity: 0.40; /* Inked color fades to ~40% opacity so photo stays visible through wash */
+  }
+}
+
+/* REVEAL screen full photo mosaic (already 100% inked or settled) */
+.reveal-board .grid-tile.revealed .tile-photo {
+  opacity: 1;
+}
+
+.reveal-board .grid-tile.revealed .tile-ink-wash {
+  animation: reveal-settle-pop 300ms forwards;
+  animation-fill-mode: both;
+}
+
+@keyframes reveal-settle-pop {
+  0% {
+    transform: scale(0.8);
+    background-color: var(--ink-coral);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    background-color: var(--ink-coral);
+    opacity: 0.15; /* Subtler tint on final showcase */
+  }
+}
+
+/* Cat-Squid Player Sprite Container */
+.cat-squid-sprite {
+  position: absolute;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10;
+  transform: translate(calc(var(--player-col, 0) * var(--cell-size)), calc(var(--player-row, 0) * var(--cell-size)));
+  transition: transform 90ms linear;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sprite-pixel-art {
+  width: 90%;
+  height: 90%;
+  image-rendering: pixelated;
+}
+
+/* Animation 3: MATCH Countdown Overlay (§6.3) */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 8, 31, 0.7);
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.countdown-overlay.active {
+  opacity: 1;
+}
+
+.countdown-text {
+  font-size: clamp(38px, 11vw, 64px);
+  color: var(--gold);
+  text-shadow: 4px 4px 0 var(--ink-coral), 8px 8px 0 var(--ink-teal);
+  display: inline-block;
+}
+
+/* Number scales in and squashes on impact over 250ms overshoot */
+.countdown-animate {
+  animation: countdown-spring 250ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes countdown-spring {
+  0%   { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* On-Screen Touch D-pad (§5.2 & §7) */
+.dpad-controller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  touch-action: none;
+}
+
+.dpad-middle-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--ink-dark);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow: 3px 3px 0 var(--void);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  border-radius: 0;
+}
+
+.dpad-btn:active,
+.dpad-btn.active {
+  background: var(--ink-coral);
+  color: var(--void);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--void);
+}
+
+.dpad-center-hub {
+  width: 52px;
+  height: 52px;
+  background: var(--void-2);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================================================
+   SCREEN 3: REVEAL SPEC (§5.3 & §7)
+   ========================================================================== */
+.reveal-header {
+  text-align: center;
+  margin-top: 36px;
+}
+
+.reveal-stamp {
+  font-size: clamp(20px, 6vw, 30px);
+  color: var(--gold);
+  text-shadow: 3px 3px 0 var(--ink-coral);
+  margin-bottom: 4px;
+}
+
+.reveal-subtitle {
+  font-size: 11px;
+  color: var(--ink-teal);
+  letter-spacing: 1px;
+}
+
+.reveal-mosaic-wrapper {
+  margin: 10px auto;
+}
+
+/* Nintendo results screen Stat Card (§5.3 & §7) */
+.stat-card {
+  width: 100%;
+  background: var(--void-2);
+  border: 4px solid #ffffff;
+  padding: 14px 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-item-wide {
+  grid-column: span 3;
+  border-top: 2px dashed rgba(255, 255, 255, 0.25);
+  padding-top: 8px;
+}
+
+.stat-number {
+  color: var(--gold);
+  font-size: 19px;
+}
+
+.stat-player-split {
+  color: var(--player-color, var(--ink-coral));
+}
+
+.stat-rival-split {
+  color: var(--rival-color, var(--ink-teal));
+}
+
+.stat-mvp {
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.stat-label {
+  font-size: 10px;
+}
+
+.stat-label-coral {
+  color: var(--player-color, var(--ink-coral));
+}
+
+.stat-label-teal {
+  color: var(--rival-color, var(--ink-teal));
+}
+
+.stat-label-gold {
+  color: var(--gold);
+}
+
+.reveal-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* ==========================================================================
+   SCREEN 4: NOTE SPEC (§5.4 & §6.5)
+   Strictly adheres to Caveat font, --paper background, and --blush seal isolation.
+   ========================================================================== */
+.note-card-wrapper {
+  width: 100%;
+  max-width: 460px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.note-photo-thumbnail {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  border: 3px solid var(--ink-dark);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.note-photo-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.note-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  background: #ffffff;
+  border: 2px solid var(--ink-dark);
+  padding: 24px 18px;
+  box-shadow: 6px 6px 0 rgba(36, 21, 51, 0.15);
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* --blush token reserved EXCLUSIVELY for NOTE screen (§2) */
+.note-blush-seal {
+  position: absolute;
+  top: -12px;
+  right: 12px;
+  background: var(--blush);
+  color: var(--ink-dark);
+  border: 2px solid var(--ink-dark);
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+  white-space: nowrap;
+}
+
+.seal-icon {
+  font-size: 10px;
+}
+
+/* Message text in Caveat (spec §3 & §6.5) */
+.note-message-body {
+  font-family: 'Caveat', cursive;
+  font-weight: 600;
+  font-size: clamp(20px, 5vw, 24px);
+  line-height: 1.55;
+  color: var(--void);
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+  text-align: left;
+  
+  /* Animation 5: Message text fades in over 400ms after 150ms delay (§6.5) */
+  opacity: 0;
+  animation: note-text-fade 400ms ease-out 150ms forwards;
+}
+
+@keyframes note-text-fade {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.note-actions {
+  margin-top: 10px;
+  margin-bottom: 50px;
+}
+
+/* ==========================================================================
+   GRAND FINALE NOTE SCREEN STYLING (Round 4 Climax)
+   ========================================================================== */
+.note-card-wrapper.is-grand-finale {
+  gap: 22px;
+  max-width: 480px;
+}
+
+/* 1. Substantially Bigger, Keepsake Polaroid Photo */
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail {
+  width: 250px;
+  height: 250px;
+  max-width: 84vw;
+  padding: 10px 10px 34px 10px;
+  background: #ffffff;
+  border: 3px solid #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 215, 0, 0.5), 6px 6px 0 rgba(18, 8, 31, 0.9);
+  transform: rotate(-2deg);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  position: relative;
+  overflow: visible;
+}
+
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail:hover {
+  transform: rotate(0deg) scale(1.03);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.8), 0 0 24px rgba(255, 215, 0, 0.7);
+}
+
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail img {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Polaroid Star Pin at top */
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail::before {
+  content: '★';
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: var(--gold);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 10px var(--gold);
+  z-index: 5;
+}
+
+/* Handwritten Polaroid Caption */
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail::after {
+  content: 'Zaman & Malachi ♡';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Caveat', cursive;
+  font-weight: 600;
+  font-size: 20px;
+  color: #3b2d4a;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* 2. Special Grand Finale Note Card */
+.note-card-wrapper.is-grand-finale .note-card {
+  background: linear-gradient(175deg, #ffffff 0%, #fffef8 40%, #fff4e8 100%);
+  border: 3px solid var(--gold);
+  padding: 30px 22px 24px 22px;
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.6), 0 0 32px rgba(255, 215, 0, 0.35), 6px 6px 0 var(--ink-coral);
+  border-radius: 4px;
+  position: relative;
+}
+
+/* Gold dashed inner border */
+.note-card-wrapper.is-grand-finale .note-card::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed rgba(255, 180, 0, 0.45);
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+/* 3. Special Wax Seal Ribbon Badge */
+.note-card-wrapper.is-grand-finale .note-blush-seal {
+  top: -14px;
+  right: 18px;
+  background: linear-gradient(135deg, #ff4081, #ff6b4a);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  padding: 6px 14px;
+  font-size: 8.5px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 14px rgba(255, 64, 129, 0.6), 2px 2px 0 rgba(0,0,0,0.3);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.note-card-wrapper.is-grand-finale .note-blush-seal .seal-icon {
+  font-size: 11px;
+  color: var(--gold);
+  animation: seal-star-spin 3s infinite linear;
+}
+
+@keyframes seal-star-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 4. Richer Note Message Body */
+.note-card-wrapper.is-grand-finale .note-message-body {
+  font-size: clamp(21px, 5.2vw, 25px);
+  line-height: 1.65;
+  color: #1a0826;
+  text-shadow: 0 0 1px rgba(0,0,0,0.05);
+}
+
+/* 5. Special Grand Finale Action Button */
+.note-card-wrapper.is-grand-finale .btn-note {
+  background: linear-gradient(135deg, var(--ink-coral), #ff2b66);
+  border: 3px solid #ffffff;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(255, 107, 74, 0.55), 4px 4px 0 var(--ink-dark);
+  font-size: 11px;
+  padding: 14px 28px;
+  animation: finale-heart-pulse 2.2s infinite ease-in-out;
+}
+
+@keyframes finale-heart-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(255, 107, 74, 0.55), 4px 4px 0 var(--ink-dark); }
+  50% { transform: scale(1.04); box-shadow: 0 12px 32px rgba(255, 64, 129, 0.75), 4px 4px 0 var(--ink-dark); }
+}
+
+/* ==========================================================================
+   PREFERS-REDUCED-MOTION SPEC (§6)
+   Disable all five animations and jump straight to end states.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .ink-blob {
+    animation: none !important;
+  }
+  
+  .transitioning-to-match #screen-title .title-content,
+  .transitioning-to-match .morph-squid {
+    animation: none !important;
+  }
+  
+  .countdown-animate {
+    animation: none !important;
+  }
+
+  .grid-tile.inked .tile-ink-wash {
+    animation: none !important;
+    background-color: var(--ink-coral) !important;
+    opacity: 0.40 !important;
+    transform: none !important;
+  }
+
+  .reveal-board .grid-tile.revealed .tile-ink-wash {
+    animation: none !important;
+    opacity: 0.15 !important;
+    transform: none !important;
+  }
+
+  .note-message-body {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .cat-squid-sprite {
+    transition: none !important;
+  }
+
+  .progress-fill {
+    transition: none !important;
+  }
+}
+
+/* Responsive fine-tuning for smaller mobile viewports (<= 380px) */
+@media (max-width: 380px) {
+  :root {
+    --grid-size: 300px;
+  }
+
+  .dpad-btn {
+    width: 46px;
+    height: 46px;
+    font-size: 12px;
+  }
+
+  .dpad-center-hub {
+    width: 46px;
+    height: 46px;
+  }
+
+  .stat-card {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
+  .stat-number {
+    font-size: 18px;
+  }
+
+  .btn-game {
+    padding: 14px 24px;
+    font-size: 11px;
+  }
+}
+
+/* ==========================================================================
+   ADDITIVE SCOPE STYLING (§9–§16)
+   ========================================================================== */
+
+/* --- 1. Persistent Audio Control Bar (§11 & §14) --- */
+.audio-control-bar {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.btn-audio {
+  background: var(--void-2);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  font-size: 16px;
+  transition: transform 80ms ease;
+}
+
+.btn-audio:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 transparent;
+}
+
+.audio-ticker {
+  background: rgba(26, 15, 46, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--ink-teal);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-icon {
+  color: var(--gold);
+}
+
+.ticker-text {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- 2. Screen 0: Birthday Locked Screen (§16) --- */
+.locked-content {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  padding: 24px 0;
+  flex: 1;
+  justify-content: center;
+}
+
+.locked-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.locked-subhead {
+  font-size: 10px;
+  color: var(--ink-coral);
+  letter-spacing: 2px;
+}
+
+.locked-headline {
+  font-size: clamp(22px, 6vw, 34px);
+  color: #ffffff;
+  text-shadow: 4px 4px 0 var(--ink-coral), 8px 8px 0 var(--ink-teal);
+}
+
+.locked-teaser {
+  font-size: 11px;
+  color: #a49cb5;
+  line-height: 1.5;
+}
+
+/* Blurred Teaser Photo Peek (§16) */
+.locked-photo-peek {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border: 3px solid #ffffff;
+  box-shadow: 6px 6px 0 var(--void);
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  cursor: pointer;
+}
+
+.locked-photo-peek:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 16px rgba(255, 107, 74, 0.4);
+}
+
+.locked-peek-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(var(--locked-blur, 12px)) brightness(0.65) saturate(1.4);
+  transition: filter 300ms ease;
+}
+
+.locked-photo-peek.peek-active .locked-peek-img {
+  filter: blur(9px) contrast(170%) brightness(0.8) saturate(1.4) !important;
+  transform: scale(1.05);
+}
+
+.locked-photo-peek.peek-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(18, 8, 31, 0.75) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(18, 8, 31, 0.75) 2px, transparent 2px);
+  background-size: 10px 10px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.locked-photo-peek.peek-active .locked-peek-overlay {
+  opacity: 0.55;
+}
+
+.locked-peek-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(18, 8, 31, 0.45);
+  transition: opacity 250ms ease;
+}
+
+.lock-icon {
+  font-size: 28px;
+}
+
+.lock-tag {
+  font-size: 8px;
+  color: var(--gold);
+  letter-spacing: 0.5px;
+}
+
+/* Hidden Peek Mascot Cat Sprite (§16 Easter Egg) */
+.locked-cat-sprite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px;
+  transition: transform 120ms ease;
+}
+
+.locked-cat-sprite:hover,
+.locked-cat-sprite.holding {
+  transform: scale(1.15);
+}
+
+.locked-cat-art {
+  width: 32px;
+  height: 32px;
+}
+
+.locked-cat-art svg {
+  width: 100%;
+  height: 100%;
+}
+
+.locked-cat-hint {
+  font-size: 7px;
+  color: var(--gold);
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+}
+
+/* Locked Live Countdown Digits */
+.locked-countdown-card {
+  background: var(--void-2);
+  border: 3px solid #ffffff;
+  padding: 16px;
+  width: 100%;
+  box-shadow: 4px 4px 0 var(--ink-dark);
+  cursor: pointer;
+  transition: transform 100ms ease, border-color 100ms ease;
+}
+
+.locked-countdown-card:hover {
+  border-color: var(--gold);
+}
+
+.locked-countdown-card:active {
+  transform: translateY(2px);
+}
+
+.countdown-label {
+  font-size: 10px;
+  color: var(--ink-teal);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.countdown-digits-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.digit-box {
+  background: var(--void);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.digit-val {
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.digit-lbl {
+  font-size: 8px;
+  color: #8f85a3;
+}
+
+.locked-subtext {
+  font-size: 10px;
+  color: var(--ink-coral);
+}
+
+/* --- 3. Title Squid Mascot & Easter Egg Click Target (§15) --- */
+.title-squid-hero {
+  cursor: pointer;
+  padding: 6px;
+  transition: transform 100ms ease;
+  user-select: none;
+}
+
+.title-squid-hero:hover {
+  transform: scale(1.08);
+}
+
+.hero-squid-art {
+  width: 48px;
+  height: 48px;
+}
+
+/* --- 4. Undertale / Deltarune Style Ink Color Menu Box (§10 & §13) --- */
+.undertale-menu-box {
+  width: 100%;
+  max-width: 440px;
+  background: #000000;
+  border: 3px solid #ffffff;
+  padding: 12px 16px;
+  box-shadow: 4px 4px 0 var(--void);
+  text-align: left;
+}
+
+.menu-title {
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.swatches-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.swatch-item {
+  background: #000000;
+  border: 2px solid transparent;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #ffffff;
+  outline: none;
+}
+
+.swatch-item:hover,
+.swatch-item.selected {
+  border-color: #ffffff;
+}
+
+.swatch-pointer {
+  font-size: 10px;
+  color: var(--gold);
+  opacity: 0;
+  width: 10px;
+}
+
+.swatch-item.selected .swatch-pointer {
+  opacity: 1;
+}
+
+.swatch-dot {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.swatch-name {
+  white-space: nowrap;
+}
+
+/* --- 5. Rival AI Inkling Sprite Visuals (§9) --- */
+.rival-squid {
+  position: absolute;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9;
+  transform: translate(calc(var(--rival-col, 0) * var(--cell-size)), calc(var(--rival-row, 0) * var(--cell-size)));
+  transition: transform 90ms linear;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 6. Deltarune Bottom-Anchored Dialogue Box (§13 & §15) --- */
+.deltarune-dialogue-box {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  background: #000000;
+  border: 3px solid #ffffff;
+  padding: 14px 18px;
+  z-index: 150;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+  box-sizing: border-box;
+}
+
+.dialogue-inner {
+  position: relative;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dialogue-text {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #ffffff;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.dialogue-cursor {
+  align-self: flex-end;
+  color: var(--gold);
+  font-size: 12px;
+  animation: cursor-blink 800ms infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* --- 7. Undertale "DETERMINATION" Beat Overlay (§13) --- */
+.determination-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  background: rgba(18, 8, 31, 0.85);
+}
+
+.determination-overlay.active {
+  animation: det-fade 1200ms forwards;
+}
+
+.determination-word {
+  font-size: clamp(20px, 6vw, 32px);
+  color: var(--gold);
+  text-shadow: 3px 3px 0 var(--ink-coral), 0 0 18px var(--gold);
+  letter-spacing: 2px;
+  transform: scale(0.5);
+  animation: det-pulse 1000ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes det-fade {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes det-pulse {
+  0%   { transform: scale(0.5); }
+  40%  { transform: scale(1.15); }
+  70%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+/* Screen Shake Effect (§11) */
+.screen-shake {
+  animation: shake 120ms ease-in-out;
+}
+
+@keyframes shake {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-4px, 3px); }
+  50%  { transform: translate(4px, -3px); }
+  75%  { transform: translate(-3px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ==========================================================================
+   SECTIONS 17–20: CONTROLLER, MID-MATCH FIGHT, & BOSS BATTLE STYLES
+   ========================================================================== */
+
+/* --- 1. TV-Static Glitch Cut Transition Overlay (§19 & §13) --- */
+.tv-static-cut {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #000000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.static-noise {
+  position: absolute;
+  inset: 0;
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.9) 0,
+    rgba(0, 0, 0, 0.9) 2px,
+    rgba(255, 255, 255, 0.9) 4px
+  );
+  opacity: 0.85;
+  animation: tv-noise 90ms steps(3) infinite;
+}
+
+@keyframes tv-noise {
+  0%   { transform: translate(1px, -2px); filter: invert(0); }
+  50%  { transform: translate(-2px, 1px); filter: invert(1); }
+  100% { transform: translate(2px, 2px); filter: invert(0); }
+}
+
+/* --- 2. Mid-Match FIGHT Interstitial Overlay (§19) --- */
+.fight-interstitial {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  background: rgba(18, 8, 31, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.fight-box-container {
+  width: 100%;
+  max-width: 440px;
+  background: #000000;
+  border: 4px solid #ffffff;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.9), 6px 6px 0 var(--void);
+}
+
+.fight-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.fight-tag {
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.fight-rival-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.fight-rival-sprite {
+  width: 64px;
+  height: 64px;
+  animation: boss-float 1.8s ease-in-out infinite alternate;
+}
+
+.fight-rival-dialogue {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* Timing Strike Gauge (§19 & §20) */
+.fight-strike-zone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.strike-track {
+  width: 100%;
+  height: 28px;
+  background: #1a0f2e;
+  border: 3px solid #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.strike-sweet-spot {
+  position: absolute;
+  left: 38%;
+  width: 24%;
+  height: 100%;
+  background: var(--gold);
+  opacity: 0.55;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+}
+
+.strike-cursor {
+  position: absolute;
+  top: 0;
+  left: 0%;
+  width: 6px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: 0 0 8px #ffffff;
+}
+
+.strike-prompt {
+  font-size: 8px;
+  color: var(--ink-teal);
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.btn-strike-action {
+  background: var(--ink-coral);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  padding: 10px 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 3px 3px 0 var(--ink-teal);
+  transition: transform 60ms ease;
+}
+
+.btn-strike-action:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink-teal);
+}
+
+.fight-result-text {
+  font-size: 10px;
+  color: var(--gold);
+  min-height: 14px;
+  text-align: center;
+}
+
+/* --- 3. Boss Battle Screen (§20) --- */
+#screen-boss {
+  background: #000000;
+  padding: 16px 12px;
+  justify-content: space-between;
+}
+
+.boss-arena-content {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.boss-header {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+}
+
+.boss-subhead {
+  font-size: 9px;
+  color: var(--ink-coral);
+  letter-spacing: 2px;
+}
+
+.boss-title {
+  font-size: clamp(14px, 4.5vw, 20px);
+  color: #ffffff;
+  text-shadow: 2px 2px 0 var(--ink-teal);
+}
+
+.boss-hp-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.hp-label {
+  font-size: 9px;
+  color: var(--gold);
+}
+
+.boss-hp-bar {
+  width: 140px;
+  height: 14px;
+  background: #1a0f2e;
+  border: 2px solid #ffffff;
+  overflow: hidden;
+}
+
+.boss-hp-fill {
+  height: 100%;
+  background: var(--ink-teal);
+  transition: width 200ms ease;
+}
+
+.boss-hp-hearts {
+  font-size: 12px;
+  color: #ff4081;
+  letter-spacing: 2px;
+}
+
+.boss-sprite-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.boss-sprite-large {
+  width: 80px;
+  height: 80px;
+  animation: boss-float 1.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 12px rgba(45, 227, 200, 0.45));
+}
+
+@keyframes boss-float {
+  0%   { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-8px) scale(1.04); }
+}
+
+/* Undertale Boss Battle Box Arena (§20) */
+.boss-battle-box {
+  width: 100%;
+  background: #000000;
+  border: 4px solid #ffffff;
+  padding: 14px;
+  min-height: 110px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.boss-box-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.boss-narrative-text {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #ffffff;
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* 4-Action Battle Menu Row (§20) */
+.boss-action-menu {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.boss-menu-btn {
+  background: #000000;
+  border: 2px solid #ffffff;
+  padding: 10px 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #ffffff;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: border-color 80ms ease, color 80ms ease;
+}
+
+.btn-heart {
+  font-size: 10px;
+  color: transparent;
+  width: 10px;
+}
+
+.boss-menu-btn.active,
+.boss-menu-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.boss-menu-btn.active .btn-heart,
+.boss-menu-btn:hover .btn-heart {
+  color: #ff4081; /* Undertale soul color */
+}
+
+/* Mercy Button States */
+.boss-menu-btn.mercy-disabled {
+  opacity: 0.45;
+  color: #888888;
+  border-color: #555555;
+}
+
+.boss-menu-btn.mercy-enabled {
+  opacity: 1 !important;
+  color: #00ff88 !important;
+  border-color: #00ff88 !important;
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.7);
+  animation: mercy-pulse 900ms ease-in-out infinite alternate;
+}
+
+.boss-menu-btn.mercy-enabled .btn-heart {
+  color: #00ff88 !important;
+}
+
+@keyframes mercy-pulse {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.06); box-shadow: 0 0 20px rgba(0, 255, 136, 0.95); }
+}
+
+/* Boss Counter-Attack Dodge Arena */
+.boss-dodge-arena {
+  width: 100%;
+  height: 90px;
+  background: #000000;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.boss-soul {
+  position: absolute;
+  font-size: 16px;
+  color: #ff4081;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform 60ms linear;
+  user-select: none;
+  z-index: 5;
+}
+
+.ink-bullet {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--ink-teal);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--ink-teal);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ==========================================================================
+   DELTARUNE VESSEL CREATOR INTRO STYLES
+   ========================================================================== */
+#screen-vessel {
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.vessel-container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.vessel-step {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.vessel-prompt {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.vessel-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vessel-card {
+  width: 100%;
+  background: #000000;
+  border: 2px solid #ffffff;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 80ms ease;
+}
+
+.vessel-selector-heart {
+  font-size: 12px;
+  color: transparent;
+  width: 12px;
+}
+
+.vessel-card.active,
+.vessel-card:hover {
+  border-color: var(--gold);
+}
+
+.vessel-card.active .vessel-selector-heart,
+.vessel-card:hover .vessel-selector-heart {
+  color: #ff4081;
+}
+
+.vessel-card.active .vessel-name,
+.vessel-card:hover .vessel-name {
+  color: var(--gold);
+}
+
+.vessel-preview {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vessel-preview svg {
+  width: 100%;
+  height: 100%;
+}
+
+.vessel-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #ffffff;
+}
+
+.vessel-btn {
+  margin-top: 10px;
+}
+
+.vessel-input-wrapper {
+  width: 100%;
+  max-width: 320px;
+}
+
+.vessel-name-input {
+  width: 100%;
+  background: #12081f;
+  border: 3px solid #ffffff;
+  color: var(--gold);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 12px;
+  outline: none;
+  letter-spacing: 2px;
+}
+
+.vessel-name-input:focus {
+  border-color: var(--ink-teal);
+}
+
+.vessel-rejection {
+  min-height: 180px;
+  justify-content: center;
+}
+
+.vessel-rejection-text {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #ffffff;
+  white-space: pre-line;
+}
+
+/* On-Screen Pixel Keyboard (§17 Controller Support) */
+.vessel-keyboard {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin: 6px auto;
+  background: #000000;
+  border: 3px solid #ffffff;
+  padding: 8px;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.85);
+}
+
+.vkey-btn {
+  background: #12081f;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 8px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: transform 60ms ease, border-color 60ms ease, background-color 60ms ease;
+  user-select: none;
+}
+
+.vkey-btn.active,
+.vkey-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: #1a0f2e;
+  transform: scale(1.12);
+  box-shadow: 0 0 8px var(--gold);
+  z-index: 2;
+}
+
+.vkey-btn.vkey-del {
+  color: var(--ink-coral);
+  border-color: var(--ink-coral);
+  font-size: 7px;
+}
+
+.vkey-btn.vkey-done {
+  color: var(--ink-teal);
+  border-color: var(--ink-teal);
+  font-size: 7px;
+}
+
+/* Small Key Control Info Bar (§17) */
+.input-help-bar {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 250;
+  pointer-events: none;
+  max-width: 95vw;
+}
+
+.input-help-inner {
+  background: rgba(18, 8, 31, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--gold);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.input-help-icon {
+  font-size: 10px;
+}
+
+/* ==========================================================================
+   SECRET EARLY UNLOCK FOR MALACHI & 67 FAKEOUT
+   ========================================================================== */
+.secret-peeker {
+  position: absolute;
+  right: 8px;
+  bottom: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.75;
+  transition: transform 180ms ease, opacity 180ms ease;
+  z-index: 25;
+  padding: 4px;
+  animation: peeker-wobble 4s infinite ease-in-out;
+}
+
+@keyframes peeker-wobble {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-4px) rotate(-6deg); }
+}
+
+.secret-peeker:hover {
+  opacity: 1;
+  transform: scale(1.18) translateX(-6px);
+}
+
+.peeker-squid-sprite {
+  width: 26px;
+  height: 26px;
+}
+
+.peeker-squid-sprite svg {
+  width: 100%;
+  height: 100%;
+}
+
+.peeker-squid-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6.5px;
+  color: var(--ink-teal);
+  background: rgba(18, 8, 31, 0.9);
+  border: 1px solid var(--ink-teal);
+  padding: 2px 4px;
+  box-shadow: 2px 2px 0 var(--void);
+}
+
+/* Terminal Modal */
+.modal-secret-override {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 4, 18, 0.88);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 16px;
+}
+
+.secret-terminal-box {
+  background: #0d0614;
+  border: 3px solid var(--ink-teal);
+  box-shadow: 0 0 28px rgba(45, 227, 200, 0.4), 6px 6px 0 var(--void);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+}
+
+.terminal-header {
+  background: #190e29;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--ink-teal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.terminal-dot.red { background: #ff4d4d; }
+.terminal-dot.yellow { background: #ffd23f; }
+.terminal-dot.green { background: #2de3c8; }
+
+.terminal-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #ffffff;
+  margin-left: 4px;
+}
+
+.terminal-body {
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.terminal-prompt {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7.5px;
+  color: var(--ink-coral);
+  line-height: 1.6;
+}
+
+.terminal-subprompt {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #ffffff;
+  line-height: 1.5;
+}
+
+.terminal-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #000000;
+  border: 2px solid #ffffff;
+  padding: 8px 10px;
+}
+
+.terminal-caret {
+  color: var(--ink-teal);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+}
+
+.terminal-input {
+  background: transparent;
+  border: none;
+  color: var(--gold);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  width: 100%;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.terminal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.btn-terminal {
+  flex: 2;
+  font-size: 9px;
+  padding: 10px;
+}
+
+.btn-terminal-cancel {
+  flex: 1;
+  font-size: 8px;
+  padding: 10px;
+  background: #241533;
+  color: #a49cb5;
+}
+
+.terminal-status {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.6;
+  min-height: 24px;
+  color: var(--ink-coral);
+}
+
+.shake-intense {
+  animation: screen-shake-heavy 400ms cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes screen-shake-heavy {
+  10%, 90% { transform: translate3d(-4px, 0, 0) rotate(-1deg); }
+  20%, 80% { transform: translate3d(6px, 0, 0) rotate(1.5deg); }
+  30%, 50%, 70% { transform: translate3d(-8px, 0, 0) rotate(-2deg); }
+  40%, 60% { transform: translate3d(8px, 0, 0) rotate(2deg); }
+}
+
+/* 67 Penalty Fakeout Modal */
+.modal-fakeout-67 {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 4, 10, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 600;
+  padding: 16px;
+}
+
+.fakeout-box {
+  background: #190513;
+  border: 4px solid var(--ink-coral);
+  box-shadow: 0 0 32px rgba(255, 107, 74, 0.6), 8px 8px 0 var(--void);
+  width: 100%;
+  max-width: 440px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.fakeout-title {
+  font-size: 14px;
+  color: #ff3366;
+  text-shadow: 2px 2px 0 var(--gold);
+}
+
+.fakeout-tagline {
+  font-size: 9px;
+  color: #ffffff;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.fakeout-desc {
+  font-size: 8px;
+  color: var(--gold);
+  line-height: 1.6;
+}
+
+.grid-fakeout-67 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  width: 220px;
+  margin: 6px auto;
+}
+
+.fakeout-tile {
+  width: 50px;
+  height: 50px;
+  background: #2a0b22;
+  border: 2px solid #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 80ms ease, background 80ms ease;
+}
+
+.fakeout-tile.inked {
+  background: var(--ink-coral);
+  color: #ffffff;
+  transform: scale(0.94);
+}
+
+.fakeout-progress {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--ink-teal);
+}
+
+/* ==========================================================================
+   PHOTO ALBUM / SCRAPBOOK SCREEN (§20 Grand Finale)
+   ========================================================================== */
+.album-content {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0 80px 0;
+}
+
+.album-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.album-badge {
+  font-size: 8.5px;
+  color: var(--gold);
+  letter-spacing: 2px;
+  background: rgba(255, 215, 0, 0.14);
+  padding: 4px 12px;
+  border: 1px solid var(--gold);
+}
+
+.album-headline {
+  font-size: clamp(24px, 6vw, 36px);
+  color: #ffffff;
+  text-shadow: 4px 4px 0 var(--ink-coral), 8px 8px 0 var(--ink-teal);
+}
+
+.album-subtitle {
+  font-size: 9px;
+  color: #c4bcd3;
+  line-height: 1.6;
+}
+
+.album-cards-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.polaroid-scrapbook-card {
+  position: relative;
+  background: #ffffff;
+  padding: 14px 14px 24px 14px;
+  border-radius: 4px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 4px 4px 0 rgba(18, 8, 31, 0.8);
+  transform: rotate(var(--rotation, 0deg));
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.polaroid-scrapbook-card:hover {
+  transform: rotate(0deg) scale(1.02);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 215, 0, 0.4);
+  z-index: 5;
+}
+
+.scrapbook-pin {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+.gold-pin { color: var(--gold); }
+.coral-pin { color: var(--ink-coral); }
+.teal-pin { color: var(--ink-teal); }
+
+.scrapbook-tape {
+  position: absolute;
+  top: -8px;
+  width: 44px;
+  height: 16px;
+  background: rgba(255, 240, 200, 0.75);
+  border: 1px dashed rgba(200, 180, 140, 0.6);
+  z-index: 8;
+}
+.left-tape { left: 8px; transform: rotate(-15deg); }
+.right-tape { right: 8px; transform: rotate(15deg); }
+
+.polaroid-photo-frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #000000;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.scrapbook-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.polaroid-caption {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  background: linear-gradient(0deg, rgba(18, 8, 31, 0.95) 0%, rgba(18, 8, 31, 0.75) 75%, transparent 100%);
+  padding: 12px 10px 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.polaroid-location {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--gold);
+  line-height: 1.4;
+}
+
+.polaroid-date {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6.5px;
+  color: var(--ink-teal);
+}
+
+.scrapbook-note {
+  font-family: 'Caveat', cursive;
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.5;
+  color: #241533;
+  text-align: left;
+  padding: 0 4px;
+}
+
+.scrapbook-sticker {
+  align-self: flex-start;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.heart-sticker {
+  background: #ffebee;
+  color: #e91e63;
+  border: 1px solid #e91e63;
+}
+
+.star-sticker {
+  background: #fffde7;
+  color: #f57f17;
+  border: 1px solid #f57f17;
+}
+
+.adventure-sticker {
+  background: #e0f7fa;
+  color: #00838f;
+  border: 1px solid #00838f;
+}
+
+.next-chapter-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #241533 0%, #12081f 100%);
+}
+
+.next-chapter-graphic {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 40px;
+  animation: finale-heart-pulse 2s infinite ease-in-out;
+}
+
+.album-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.btn-album {
+  background: var(--void-2);
+  border-color: #ffffff;
+  color: #ffffff;
+  font-size: 9px;
+  padding: 12px 16px;
+}
+
+.btn-album-accent {
+  background: var(--ink-coral);
+  color: #ffffff;
+  font-size: 9px;
+  padding: 12px 20px;
+}
+
+/* Scrapbook Video Card */
+.scrapbook-video-card {
+  position: relative;
+  background: #ffffff;
+  padding: 14px 14px 24px 14px;
+  border-radius: 4px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 4px 4px 0 rgba(18, 8, 31, 0.8);
+  transform: rotate(var(--rotation, 0deg));
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scrapbook-video-card:hover,
+.scrapbook-video-card.gamepad-focused {
+  transform: rotate(0deg) scale(1.02);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(45, 227, 200, 0.5);
+  z-index: 5;
+}
+
+.polaroid-video-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000000;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.scrapbook-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  outline: none;
+}
+
+.video-reel-badge {
+  background: #ede7f6;
+  color: #512da8;
+  border: 1px solid #512da8;
+}
+
+/* Gamepad Focus Highlights */
+.gamepad-focused {
+  outline: 3px solid var(--gold) !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 16px var(--gold) !important;
+}
+
+/* On-Screen Pixel Keyboard for Terminal */
+.terminal-keyboard {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  background: #000000;
+  border: 2px solid var(--ink-teal);
+  padding: 6px;
+  margin: 6px 0;
+}
+
+.tkey-btn {
+  background: #150921;
+  border: 1px solid rgba(45, 227, 200, 0.4);
+  color: #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  padding: 7px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: transform 60ms ease, background 60ms ease, border-color 60ms ease;
+  user-select: none;
+}
+
+.tkey-btn:hover,
+.tkey-btn.active,
+.tkey-btn.gamepad-focused {
+  background: var(--ink-teal);
+  color: var(--void);
+  border-color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 0 8px var(--ink-teal);
+  z-index: 2;
+}
+
+.tkey-btn.tkey-del {
+  color: var(--ink-coral);
+  border-color: var(--ink-coral);
+}
+
+.tkey-btn.tkey-clear {
+  color: #ffd23f;
+  border-color: #ffd23f;
+}
+
+/* Boss damaged flash & damage numbers */
+.boss-sprite-large.boss-damaged {
+  filter: brightness(2.5) drop-shadow(0 0 16px #ff0055) !important;
+  animation: boss-hurt-shake 250ms ease-in-out;
+}
+
+@keyframes boss-hurt-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-6px, 2px) rotate(-2deg); }
+  50% { transform: translate(6px, -2px) rotate(2deg); }
+  75% { transform: translate(-4px, -1px); }
+}
+
+.boss-damage-popup {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  color: #ff3366;
+  text-shadow: 2px 2px 0 #ffffff, 0 0 12px rgba(255, 51, 102, 0.8);
+  animation: damage-float-up 800ms ease-out forwards;
+  pointer-events: none;
+  z-index: 30;
+}
+
+@keyframes damage-float-up {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -36px) scale(1); }
+}
+
