@@ -2232,7 +2232,7 @@ body.controller-mode .vessel-keyboard {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 500;
+  z-index: 10005;
   padding: 16px;
 }
 
@@ -2241,8 +2241,9 @@ body.controller-mode .vessel-keyboard {
   border: 3px solid var(--ink-teal);
   box-shadow: 0 0 28px rgba(45, 227, 200, 0.4), 6px 6px 0 var(--void);
   width: 100%;
-  max-width: 440px;
-  overflow: hidden;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .terminal-header {

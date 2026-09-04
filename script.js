@@ -1217,7 +1217,10 @@ const VALID_DEV_PASSCODES = [
   'ZAMAN',
   '0908',
   'OCTO2026',
-  'SUPERDEV'
+  'SUPERDEV',
+  'DEV2026',
+  'OVERRIDE',
+  'SKIP'
 ];
 
 const TERMINAL_KEYS = [
@@ -1353,11 +1356,16 @@ function recordCheatDirection(dir) {
 // --- DEV MODE STATE CONTROLLER & SCREEN SKIPPING ---
 const DEV_PAGES = ['LOCKED', 'VESSEL', 'TITLE', 'MATCH', 'BOSS', 'REVEAL', 'NOTE', 'ALBUM'];
 
+let selectedDevBtnIndex = 0;
+
 function enableDevMode() {
   state.devModeActive = true;
   const devBar = document.getElementById('dev-floating-bar');
   if (devBar) devBar.removeAttribute('hidden');
+  const devPanel = document.getElementById('dev-control-panel');
+  if (devPanel) devPanel.removeAttribute('hidden');
   updateDevBarDisplay();
+  updateDevModalUI();
 }
 
 function updateDevBarDisplay() {
@@ -1371,6 +1379,10 @@ function devJumpToScreen(screenName) {
   if (!DEV_PAGES.includes(screenName)) return;
   sound.resume();
   sound.playTextBlip();
+
+  if (modalSecretOverride) {
+    modalSecretOverride.setAttribute('hidden', '');
+  }
 
   if (lockedCountdownInterval) {
     clearInterval(lockedCountdownInterval);
@@ -1399,12 +1411,14 @@ function devJumpToScreen(screenName) {
   } else if (screenName === 'BOSS') {
     startBossBattle();
   } else if (screenName === 'REVEAL') {
-    updateMatchResults();
+    transitionToReveal();
   } else if (screenName === 'NOTE') {
     transitionToNote();
   } else if (screenName === 'ALBUM') {
     playGrandFinaleMusic();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   updateDevBarDisplay();
@@ -1469,17 +1483,52 @@ function devSetBossHP(hp) {
   }
 }
 
+function updateDevModalUI() {
+  if (!modalSecretOverride) return;
+  const devPanel = document.getElementById('dev-control-panel');
+  const termHeader = modalSecretOverride.querySelector('.terminal-title');
+  const termPrompt = modalSecretOverride.querySelector('.terminal-prompt');
+  const termSubprompt = modalSecretOverride.querySelector('.terminal-subprompt');
+  const termInputWrap = modalSecretOverride.querySelector('.terminal-input-wrapper');
+  const termKeyboard = document.getElementById('terminal-keyboard');
+  const btnSubmit = document.getElementById('btn-submit-override');
+  const btnCancel = document.getElementById('btn-cancel-override');
+
+  if (state.devModeActive) {
+    if (termHeader) termHeader.textContent = '🛠️ DEV SCREEN: MALACHI_CONTROLS';
+    if (termPrompt) termPrompt.textContent = '* OPERATOR MALACHI // CLEARANCE: DEV MODE ACTIVE';
+    if (termSubprompt) termSubprompt.textContent = '* Jump to any screen or test countdown/boss states:';
+    if (termInputWrap) termInputWrap.setAttribute('hidden', '');
+    if (termKeyboard) {
+      termKeyboard.setAttribute('hidden', '');
+      termKeyboard.style.display = 'none';
+    }
+    if (btnSubmit) btnSubmit.setAttribute('hidden', '');
+    if (btnCancel) btnCancel.textContent = '✖ CLOSE DEV SCREEN';
+    if (devPanel) devPanel.removeAttribute('hidden');
+    if (terminalStatus) {
+      terminalStatus.style.color = 'var(--ink-teal)';
+      terminalStatus.textContent = `* Current Screen: [${state.currentScreen}]. Accessible on each page:`;
+    }
+  } else {
+    if (termHeader) termHeader.textContent = 'TERMINAL: MALACHI_OVERRIDE';
+    if (termPrompt) termPrompt.textContent = '* RESTRICTED ACCESS // OPERATOR CLEARANCE REQUIRED';
+    if (termSubprompt) termSubprompt.textContent = '* Enter the secret override passcode:';
+    if (termInputWrap) termInputWrap.removeAttribute('hidden');
+    if (btnSubmit) btnSubmit.removeAttribute('hidden');
+    if (btnCancel) btnCancel.textContent = 'ABORT';
+    if (devPanel) devPanel.setAttribute('hidden', '');
+    updateControllerKeyboardsVisibility();
+  }
+}
+
 function toggleDevModal() {
   sound.resume();
   sound.playTextBlip();
   if (!modalSecretOverride) return;
   if (modalSecretOverride.hasAttribute('hidden')) {
     modalSecretOverride.removeAttribute('hidden');
-    if (secretPasscodeInput) secretPasscodeInput.value = '';
-    if (terminalStatus) {
-      terminalStatus.textContent = '* DEV CONSOLE ACTIVE. Choose a screen or state:';
-      terminalStatus.style.color = 'var(--ink-teal)';
-    }
+    updateDevModalUI();
   } else {
     modalSecretOverride.setAttribute('hidden', '');
   }
@@ -1493,12 +1542,13 @@ function triggerDevCheatUnlock() {
   modalSecretOverride.removeAttribute('hidden');
   secretPasscodeInput.value = 'OCTO-CHAMPION-2026';
   terminalStatus.style.color = 'var(--ink-teal)';
-  terminalStatus.textContent = '* CHEAT CODE ACTIVATED!\n* Operator Malachi Authenticated! Dev Mode Enabled!';
+  terminalStatus.textContent = '* CHEAT CODE ACTIVATED!\n* Dev Controls Unlocked! Staying on Start Screen.';
+  updateDevModalUI();
 
   setTimeout(() => {
     modalSecretOverride.setAttribute('hidden', '');
-    devJumpToScreen('TITLE');
-  }, 1100);
+    updateDevBarDisplay();
+  }, 1200);
 }
 
 function initSecretOverride() {
@@ -1515,13 +1565,16 @@ function initSecretOverride() {
       sound.resume();
       sound.playTextBlip();
       modalSecretOverride.removeAttribute('hidden');
-      secretPasscodeInput.value = '';
-      terminalStatus.textContent = '';
-      selectedTerminalKeyIndex = 0;
-      updateTerminalKeySelection();
-      updateControllerKeyboardsVisibility();
-      if (currentInputMode === 'keyboard') {
-        secretPasscodeInput.focus();
+      updateDevModalUI();
+      if (!state.devModeActive) {
+        secretPasscodeInput.value = '';
+        terminalStatus.textContent = '';
+        selectedTerminalKeyIndex = 0;
+        updateTerminalKeySelection();
+        updateControllerKeyboardsVisibility();
+        if (currentInputMode === 'keyboard') {
+          secretPasscodeInput.focus();
+        }
       }
     };
   }
@@ -1598,14 +1651,15 @@ function submitSecretOverride() {
   if (isMatch) {
     enableDevMode();
     terminalStatus.style.color = 'var(--ink-teal)';
-    terminalStatus.textContent = '* DEV OVERRIDE CONFIRMED. Welcome, Operator Malachi!\n* Dev Mode Enabled! Screen skipping unlocked.';
+    terminalStatus.textContent = '* DEV OVERRIDE CONFIRMED. Welcome, Operator Malachi!\n* Dev Controls Unlocked! Staying on Start Screen.';
     sound.playDeterminationFanfare();
     triggerHaptic([50, 50, 100, 50, 200]);
+    updateDevModalUI();
 
     setTimeout(() => {
       modalSecretOverride.setAttribute('hidden', '');
-      devJumpToScreen('TITLE');
-    }, 1100);
+      updateDevBarDisplay();
+    }, 1200);
     return;
   }
 
@@ -3155,8 +3209,20 @@ function pollGamepad() {
 }
 
 function handleDirectionInput(dr, dc) {
-  // 1. Modal Override active -> navigate terminal pixel keyboard!
+  // 1. Modal Override active -> navigate terminal pixel keyboard or dev buttons!
   if (!modalSecretOverride.hasAttribute('hidden')) {
+    if (state.devModeActive) {
+      const devBtns = Array.from(modalSecretOverride.querySelectorAll('.dev-btn, #btn-cancel-override'));
+      if (devBtns.length > 0) {
+        if (dc === 1 || dr === 1) selectedDevBtnIndex = (selectedDevBtnIndex + 1) % devBtns.length;
+        else if (dc === -1 || dr === -1) selectedDevBtnIndex = (selectedDevBtnIndex - 1 + devBtns.length) % devBtns.length;
+        sound.playTextBlip();
+        devBtns.forEach((b, idx) => {
+          b.classList.toggle('gamepad-focused', idx === selectedDevBtnIndex);
+        });
+      }
+      return;
+    }
     if (dc === 1) selectedTerminalKeyIndex = (selectedTerminalKeyIndex + 1) % TERMINAL_KEYS.length;
     else if (dc === -1) selectedTerminalKeyIndex = (selectedTerminalKeyIndex - 1 + TERMINAL_KEYS.length) % TERMINAL_KEYS.length;
     else if (dr === 1) selectedTerminalKeyIndex = (selectedTerminalKeyIndex + 7) % TERMINAL_KEYS.length;
@@ -3268,8 +3334,15 @@ function handleActionInput() {
     return;
   }
 
-  // Modal Override active -> press selected virtual key!
+  // Modal Override active -> press selected virtual key or dev-btn!
   if (!modalSecretOverride.hasAttribute('hidden')) {
+    if (state.devModeActive) {
+      const devBtns = Array.from(modalSecretOverride.querySelectorAll('.dev-btn, #btn-cancel-override'));
+      if (devBtns[selectedDevBtnIndex]) {
+        devBtns[selectedDevBtnIndex].click();
+      }
+      return;
+    }
     pressTerminalKey(TERMINAL_KEYS[selectedTerminalKeyIndex]);
     return;
   }
@@ -3378,6 +3451,10 @@ function handleActionRelease() {
 
 function handleCancelInput() {
   if (!modalSecretOverride.hasAttribute('hidden')) {
+    if (state.devModeActive) {
+      modalSecretOverride.setAttribute('hidden', '');
+      return;
+    }
     pressTerminalKey('DEL');
     return;
   }
