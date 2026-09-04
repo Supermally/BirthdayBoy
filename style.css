@@ -2232,28 +2232,60 @@ body.controller-mode .vessel-keyboard {
 .bypass-peeker {
   left: 8px;
   right: auto;
-  animation: peeker-wobble-left 4s infinite ease-in-out;
+  opacity: 0.42;
+  filter: brightness(0.85) saturate(0.85);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              opacity 220ms ease,
+              filter 220ms ease;
+  animation: peeker-gentle-left 5s infinite ease-in-out;
 }
 
-@keyframes peeker-wobble-left {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px) rotate(6deg); }
+@keyframes peeker-gentle-left {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.38;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 0.56;
+  }
 }
 
-.bypass-peeker:hover {
+.bypass-peeker:hover,
+.bypass-peeker:focus-visible {
   opacity: 1;
-  transform: scale(1.18) translateX(6px);
+  filter: brightness(1.15) saturate(1.2);
+  transform: translateY(-5px) scale(1.1);
+  animation-play-state: paused;
 }
 
 .bypass-peeker.gamepad-focused {
+  opacity: 1;
+  filter: brightness(1.15) saturate(1.2);
   outline: 2px solid #ffffff;
   box-shadow: 0 0 16px var(--gold);
-  transform: scale(1.15);
+  transform: translateY(-5px) scale(1.15);
+  animation-play-state: paused;
 }
 
 .peeker-bypass-label {
+  font-size: 6px;
+  color: rgba(255, 210, 63, 0.75);
+  border-color: rgba(255, 210, 63, 0.45);
+  background: rgba(18, 8, 31, 0.65);
+  border-radius: 2px;
+  padding: 2px 5px;
+  letter-spacing: 0.5px;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+
+.bypass-peeker:hover .peeker-bypass-label,
+.bypass-peeker:focus-visible .peeker-bypass-label,
+.bypass-peeker.gamepad-focused .peeker-bypass-label {
   color: var(--gold);
   border-color: var(--gold);
+  background: rgba(18, 8, 31, 0.95);
+  box-shadow: 0 0 8px rgba(255, 210, 63, 0.5);
 }
 
 /* Terminal Modal */
