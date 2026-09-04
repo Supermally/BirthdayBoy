@@ -1121,7 +1121,7 @@ html, body {
   position: fixed;
   top: 12px;
   right: 14px;
-  z-index: 120;
+  z-index: 10001;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2773,4 +2773,45 @@ html, body {
   0% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
   100% { opacity: 0; transform: translate(-50%, -36px) scale(1); }
 }
+
+/* Cheat Code Sequence HUD Indicator (§16) */
+.cheat-input-indicator {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(10, 8, 24, 0.94);
+  border: 2px solid var(--ink-teal, #00f0ff);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.5), inset 0 0 8px rgba(0, 240, 255, 0.2);
+  color: var(--ink-teal, #00f0ff);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  letter-spacing: 4px;
+}
+
+.cheat-input-indicator.active {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.cheat-input-indicator.matched {
+  border-color: #ffe600;
+  color: #ffe600;
+  box-shadow: 0 0 24px rgba(255, 230, 0, 0.8), inset 0 0 10px rgba(255, 230, 0, 0.3);
+  font-size: 13px;
+  letter-spacing: 2px;
+  animation: cheatPulse 0.35s ease infinite alternate;
+}
+
+@keyframes cheatPulse {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.08); }
+}
+
 

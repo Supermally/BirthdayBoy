@@ -247,6 +247,7 @@ function generateSVGFromMatrix(matrix, primaryColor) {
 class SoundEngine {
   constructor() {
     this.ctx = null;
+    this.masterGain = null;
     this.sfxGain = null;
     this.ambientGain = null;
     this.battleGain = null;
@@ -263,17 +264,21 @@ class SoundEngine {
       if (AudioCtx) {
         this.ctx = new AudioCtx();
 
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = this.isAmbientMuted ? 0.0 : 1.0;
+        this.masterGain.connect(this.ctx.destination);
+
         this.sfxGain = this.ctx.createGain();
         this.sfxGain.gain.value = 0.45;
-        this.sfxGain.connect(this.ctx.destination);
+        this.sfxGain.connect(this.masterGain);
 
         this.ambientGain = this.ctx.createGain();
         this.ambientGain.gain.value = this.isAmbientMuted ? 0.0 : 0.22;
-        this.ambientGain.connect(this.ctx.destination);
+        this.ambientGain.connect(this.masterGain);
 
         this.battleGain = this.ctx.createGain();
         this.battleGain.gain.value = 0.0;
-        this.battleGain.connect(this.ctx.destination);
+        this.battleGain.connect(this.masterGain);
       }
     } catch (e) {
       console.warn('Web Audio not supported:', e);
@@ -282,21 +287,16 @@ class SoundEngine {
 
   resume() {
     this.init();
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state === 'suspended' && !this.isAmbientMuted) {
+      this.ctx.resume().catch(() => {});
     }
   }
 
   toggleAmbientMute() {
-    this.resume();
-    this.isAmbientMuted = !this.isAmbientMuted;
-    if (this.ambientGain && this.ctx) {
-      this.ambientGain.gain.setValueAtTime(this.isAmbientMuted ? 0.0 : 0.22, this.ctx.currentTime);
-    }
-    if (!this.isAmbientMuted) {
-      this.startAmbientSynth();
+    if (typeof setAudioMute === 'function') {
+      setAudioMute(!this.isAmbientMuted);
     } else {
-      this.stopAmbientSynth();
+      this.isAmbientMuted = !this.isAmbientMuted;
     }
     return this.isAmbientMuted;
   }
@@ -635,14 +635,23 @@ class MusicPlaylistManager {
   }
 
   stop() {
-    this.audio.pause();
+    try {
+      this.audio.pause();
+      this.audio.muted = true;
+    } catch (e) {}
+    if (this.tickerEl) this.tickerEl.setAttribute('hidden', '');
   }
 
   updateMuteState(isMuted) {
     if (isMuted) {
-      this.audio.pause();
+      try {
+        this.audio.pause();
+        this.audio.muted = true;
+      } catch (e) {}
       this.soundEngine.stopAmbientSynth();
+      if (this.tickerEl) this.tickerEl.setAttribute('hidden', '');
     } else {
+      this.audio.muted = false;
       if (this.audio.src) {
         this.audio.play().catch(() => {
           this.soundEngine.startAmbientSynth();
@@ -650,13 +659,120 @@ class MusicPlaylistManager {
       } else {
         this.start();
       }
+      if (this.tickerEl) this.tickerEl.removeAttribute('hidden');
     }
   }
 }
 
-// --- 6. GAME STATE ---
+// --- 6. GAME STATE & MASTER AUDIO CONTROLLER ---
 const sound = new SoundEngine();
 let playlist = null;
+
+function setAudioMute(muted) {
+  sound.isAmbientMuted = !!muted;
+
+  if (sound.isAmbientMuted) {
+    // 1. Fully silence & pause HTML5 playlist
+    if (playlist && playlist.audio) {
+      try {
+        playlist.audio.pause();
+        playlist.audio.muted = true;
+      } catch (e) {}
+    }
+
+    // 2. Fully silence & pause finale track
+    if (finaleAudio) {
+      try {
+        finaleAudio.pause();
+        finaleAudio.muted = true;
+      } catch (e) {}
+    }
+
+    // 3. Stop running Web Audio synthesizer intervals
+    sound.stopAmbientSynth();
+    sound.stopBattleMusic();
+
+    // 4. Zero out all Web Audio gain stages & suspend hardware output
+    if (sound.ctx) {
+      try {
+        const t = sound.ctx.currentTime;
+        if (sound.masterGain) {
+          sound.masterGain.gain.cancelScheduledValues(t);
+          sound.masterGain.gain.setValueAtTime(0.0, t);
+        }
+        if (sound.ambientGain) {
+          sound.ambientGain.gain.cancelScheduledValues(t);
+          sound.ambientGain.gain.setValueAtTime(0.0, t);
+        }
+        if (sound.battleGain) {
+          sound.battleGain.gain.cancelScheduledValues(t);
+          sound.battleGain.gain.setValueAtTime(0.0, t);
+        }
+        if (sound.ctx.state === 'running') {
+          sound.ctx.suspend().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    // 5. Update UI controls
+    const iconEl = document.getElementById('audio-icon');
+    if (iconEl) iconEl.textContent = '🔇';
+    const tickerEl = document.getElementById('audio-ticker');
+    if (tickerEl) tickerEl.setAttribute('hidden', '');
+  } else {
+    // UNMUTE:
+    sound.resume();
+    if (sound.ctx) {
+      try {
+        const t = sound.ctx.currentTime;
+        if (sound.masterGain) {
+          sound.masterGain.gain.cancelScheduledValues(t);
+          sound.masterGain.gain.setValueAtTime(1.0, t);
+        }
+        if (sound.ambientGain) {
+          sound.ambientGain.gain.cancelScheduledValues(t);
+          sound.ambientGain.gain.setValueAtTime(0.22, t);
+        }
+      } catch (e) {}
+    }
+
+    const iconEl = document.getElementById('audio-icon');
+    if (iconEl) iconEl.textContent = '🔊';
+    const tickerEl = document.getElementById('audio-ticker');
+
+    // Route to appropriate music depending on current screen
+    if ((state.currentScreen === 'NOTE' && state.currentRound === 4) || state.currentScreen === 'ALBUM') {
+      if (finaleAudio) {
+        finaleAudio.muted = false;
+        finaleAudio.play().catch(() => {});
+      } else {
+        playGrandFinaleMusic();
+      }
+      if (tickerEl) tickerEl.removeAttribute('hidden');
+    } else if (state.currentScreen === 'MATCH') {
+      sound.startBattleMusic(false);
+      if (playlist) playlist.start();
+    } else if (state.currentScreen === 'BOSS') {
+      sound.startBattleMusic(true);
+      if (playlist) playlist.start();
+    } else {
+      // LOCKED, TITLE, VESSEL
+      if (playlist) {
+        playlist.audio.muted = false;
+        if (!playlist.audio.src) {
+          playlist.loadTrack(0);
+        } else {
+          playlist.audio.play().catch(() => {
+            sound.startAmbientSynth();
+          });
+        }
+      } else {
+        sound.startAmbientSynth();
+      }
+      if (tickerEl) tickerEl.removeAttribute('hidden');
+    }
+  }
+}
 
 const state = {
   currentScreen: 'TITLE',
@@ -1162,10 +1278,39 @@ function pressTerminalKey(key) {
   }
 }
 
-// Controller Cheat Code Sequence: Up, Up, Down, Right, Left
+// Controller & Keyboard Cheat Code Sequence Support
 let devCheatSequence = [];
 let devCheatTimer = null;
-const DEV_TARGET_CHEAT = ['UP', 'UP', 'DOWN', 'RIGHT', 'LEFT'];
+
+const CHEAT_PATTERNS = [
+  ['UP', 'UP', 'DOWN', 'RIGHT', 'LEFT'],                         // Up, Up, Down, Right, Left (Primary)
+  ['UP', 'UP', 'DOWN', 'LEFT', 'RIGHT'],                         // Up, Up, Down, Left, Right
+  ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'RIGHT', 'LEFT', 'RIGHT'], // Classic Konami Code
+  ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'RIGHT'],
+  ['UP', 'UP', 'DOWN', 'DOWN'],
+  ['UP', 'DOWN', 'LEFT', 'RIGHT'],
+  ['UP', 'DOWN', 'RIGHT', 'LEFT'],
+  ['UP', 'DOWN', 'UP', 'DOWN'],
+];
+
+const DIR_SYMBOLS = { UP: '↑', DOWN: '↓', LEFT: '←', RIGHT: '→' };
+
+function updateCheatVisualFeedback() {
+  let indicator = document.getElementById('cheat-input-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'cheat-input-indicator';
+    indicator.className = 'cheat-input-indicator';
+    document.body.appendChild(indicator);
+  }
+  if (devCheatSequence.length === 0) {
+    indicator.classList.remove('active', 'matched');
+    indicator.textContent = '';
+    return;
+  }
+  indicator.classList.add('active');
+  indicator.textContent = devCheatSequence.map(d => DIR_SYMBOLS[d] || d).join(' ');
+}
 
 function recordCheatDirection(dir) {
   sound.resume();
@@ -1174,19 +1319,33 @@ function recordCheatDirection(dir) {
   clearTimeout(devCheatTimer);
   devCheatTimer = setTimeout(() => {
     devCheatSequence = [];
+    updateCheatVisualFeedback();
   }, 3500);
 
   devCheatSequence.push(dir);
-  if (devCheatSequence.length > DEV_TARGET_CHEAT.length) {
+  if (devCheatSequence.length > 12) {
     devCheatSequence.shift();
   }
 
-  if (devCheatSequence.length === DEV_TARGET_CHEAT.length) {
-    const match = devCheatSequence.every((val, idx) => val === DEV_TARGET_CHEAT[idx]);
-    if (match) {
-      devCheatSequence = [];
-      clearTimeout(devCheatTimer);
-      triggerDevCheatUnlock();
+  updateCheatVisualFeedback();
+
+  // Check if any pattern matches the trailing inputs
+  for (const pattern of CHEAT_PATTERNS) {
+    if (devCheatSequence.length >= pattern.length) {
+      const slice = devCheatSequence.slice(-pattern.length);
+      const isMatch = pattern.every((p, idx) => p === slice[idx]);
+      if (isMatch) {
+        devCheatSequence = [];
+        clearTimeout(devCheatTimer);
+        const indicator = document.getElementById('cheat-input-indicator');
+        if (indicator) {
+          indicator.classList.add('matched');
+          indicator.textContent = '⭐ CODE ACCEPTED! ⭐';
+          setTimeout(() => indicator.classList.remove('active', 'matched'), 1200);
+        }
+        triggerDevCheatUnlock();
+        return;
+      }
     }
   }
 }
@@ -1198,7 +1357,7 @@ function triggerDevCheatUnlock() {
   modalSecretOverride.removeAttribute('hidden');
   secretPasscodeInput.value = 'OCTO-CHAMPION-2026';
   terminalStatus.style.color = 'var(--ink-teal)';
-  terminalStatus.textContent = '* CHEAT CODE ACTIVATED: [UP UP DOWN RIGHT LEFT]!\n* Operator Malachi Authenticated! Unlocking...';
+  terminalStatus.textContent = '* CHEAT CODE ACTIVATED!\n* Operator Malachi Authenticated! Unlocking...';
 
   setTimeout(() => {
     modalSecretOverride.setAttribute('hidden', '');
@@ -2612,111 +2771,110 @@ function updateAlbumButtonFocus() {
   });
 }
 
-let gpDpadUpPrev = false;
-let gpDpadDownPrev = false;
-let gpDpadLeftPrev = false;
-let gpDpadRightPrev = false;
-let gpStickUpPrev = false;
-let gpStickDownPrev = false;
-let gpStickLeftPrev = false;
-let gpStickRightPrev = false;
+let gpCheatUpPrev = false;
+let gpCheatDownPrev = false;
+let gpCheatLeftPrev = false;
+let gpCheatRightPrev = false;
 
 function pollGamepad() {
-  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (let i = 0; i < gamepads.length; i++) {
-    const gp = gamepads[i];
-    if (!gp) continue;
-
-    const now = performance.now();
-    const canMove = (now - lastGamepadMoveTime) > 170;
-
-    const axisX = gp.axes[0] || 0;
-    const axisY = gp.axes[1] || 0;
-    const dpadUp = gp.buttons[12] && gp.buttons[12].pressed;
-    const dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
-    const dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
-    const dpadRight = gp.buttons[15] && gp.buttons[15].pressed;
-
-    // Edge-triggered Cheat Code detection on D-Pad and Stick (press down ONLY)
-    if (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden')) {
-      if (dpadUp && !gpDpadUpPrev) recordCheatDirection('UP');
-      if (dpadDown && !gpDpadDownPrev) recordCheatDirection('DOWN');
-      if (dpadLeft && !gpDpadLeftPrev) recordCheatDirection('LEFT');
-      if (dpadRight && !gpDpadRightPrev) recordCheatDirection('RIGHT');
-
-      const stickUp = axisY < -0.65;
-      const stickDown = axisY > 0.65;
-      const stickLeft = axisX < -0.65;
-      const stickRight = axisX > 0.65;
-
-      if (stickUp && !gpStickUpPrev) recordCheatDirection('UP');
-      if (stickDown && !gpStickDownPrev) recordCheatDirection('DOWN');
-      if (stickLeft && !gpStickLeftPrev) recordCheatDirection('LEFT');
-      if (stickRight && !gpStickRightPrev) recordCheatDirection('RIGHT');
-
-      gpStickUpPrev = stickUp;
-      gpStickDownPrev = stickDown;
-      gpStickLeftPrev = stickLeft;
-      gpStickRightPrev = stickRight;
+  const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null;
+  for (let i = 0; i < rawGamepads.length; i++) {
+    if (rawGamepads[i] && rawGamepads[i].connected) {
+      gp = rawGamepads[i];
+      break;
     }
-
-    gpDpadUpPrev = !!dpadUp;
-    gpDpadDownPrev = !!dpadDown;
-    gpDpadLeftPrev = !!dpadLeft;
-    gpDpadRightPrev = !!dpadRight;
-
-    let moveX = 0;
-    let moveY = 0;
-
-    if (dpadUp || axisY < -0.35) moveY = -1;
-    if (dpadDown || axisY > 0.35) moveY = 1;
-    if (dpadLeft || axisX < -0.35) moveX = -1;
-    if (dpadRight || axisX > 0.35) moveX = 1;
-
-    const btnA = gp.buttons[0] && gp.buttons[0].pressed;
-    const btnB = gp.buttons[1] && gp.buttons[1].pressed;
-    const btnX = gp.buttons[2] && gp.buttons[2].pressed;
-    const btnY = gp.buttons[3] && gp.buttons[3].pressed;
-    const btnStart = gp.buttons[9] && gp.buttons[9].pressed;
-
-    if (moveX !== 0 || moveY !== 0 || btnA || btnB || btnX || btnY || btnStart) {
-      setInputMode('controller');
-    }
-
-    if (canMove && (moveX !== 0 || moveY !== 0)) {
-      lastGamepadMoveTime = now;
-      handleDirectionInput(moveY, moveX);
-    }
-
-    // Button A (Hold vs Tap on locked screen)
-    if (btnA && !gpButtonAPreviouslyPressed) {
-      handleActionInput();
-    }
-    if (!btnA && gpButtonAPreviouslyPressed) {
-      handleActionRelease();
-    }
-    gpButtonAPreviouslyPressed = btnA;
-
-    if (btnB && !gpButtonBPreviouslyPressed) {
-      handleCancelInput();
-    }
-    gpButtonBPreviouslyPressed = btnB;
-
-    if (btnX && !gpButtonXPreviouslyPressed) {
-      handleXButtonInput();
-    }
-    gpButtonXPreviouslyPressed = btnX;
-
-    if (btnY && !gpButtonYPreviouslyPressed) {
-      handleYButtonInput();
-    }
-    gpButtonYPreviouslyPressed = btnY;
-
-    if (btnStart && !gpButtonStartPreviouslyPressed) {
-      handleStartButtonInput();
-    }
-    gpButtonStartPreviouslyPressed = btnStart;
   }
+
+  if (!gp) {
+    requestAnimationFrame(pollGamepad);
+    return;
+  }
+
+  const now = performance.now();
+  const canMove = (now - lastGamepadMoveTime) > 170;
+
+  const axisX = gp.axes[0] || 0;
+  const axisY = gp.axes[1] || 0;
+  const dpadUp = !!(gp.buttons[12] && gp.buttons[12].pressed);
+  const dpadDown = !!(gp.buttons[13] && gp.buttons[13].pressed);
+  const dpadLeft = !!(gp.buttons[14] && gp.buttons[14].pressed);
+  const dpadRight = !!(gp.buttons[15] && gp.buttons[15].pressed);
+
+  const stickUp = axisY < -0.55;
+  const stickDown = axisY > 0.55;
+  const stickLeft = axisX < -0.55;
+  const stickRight = axisX > 0.55;
+
+  const isUp = dpadUp || stickUp;
+  const isDown = dpadDown || stickDown;
+  const isLeft = dpadLeft || stickLeft;
+  const isRight = dpadRight || stickRight;
+
+  // Edge-triggered Cheat Code detection on D-Pad and Stick (press down ONLY)
+  if (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden')) {
+    if (isUp && !gpCheatUpPrev) recordCheatDirection('UP');
+    if (isDown && !gpCheatDownPrev) recordCheatDirection('DOWN');
+    if (isLeft && !gpCheatLeftPrev) recordCheatDirection('LEFT');
+    if (isRight && !gpCheatRightPrev) recordCheatDirection('RIGHT');
+  }
+
+  gpCheatUpPrev = isUp;
+  gpCheatDownPrev = isDown;
+  gpCheatLeftPrev = isLeft;
+  gpCheatRightPrev = isRight;
+
+  let moveX = 0;
+  let moveY = 0;
+
+  if (dpadUp || axisY < -0.35) moveY = -1;
+  if (dpadDown || axisY > 0.35) moveY = 1;
+  if (dpadLeft || axisX < -0.35) moveX = -1;
+  if (dpadRight || axisX > 0.35) moveX = 1;
+
+  const btnA = !!(gp.buttons[0] && gp.buttons[0].pressed);
+  const btnB = !!(gp.buttons[1] && gp.buttons[1].pressed);
+  const btnX = !!(gp.buttons[2] && gp.buttons[2].pressed);
+  const btnY = !!(gp.buttons[3] && gp.buttons[3].pressed);
+  const btnStart = !!(gp.buttons[9] && gp.buttons[9].pressed);
+
+  if (moveX !== 0 || moveY !== 0 || btnA || btnB || btnX || btnY || btnStart) {
+    setInputMode('controller');
+  }
+
+  if (canMove && (moveX !== 0 || moveY !== 0)) {
+    lastGamepadMoveTime = now;
+    handleDirectionInput(moveY, moveX);
+  }
+
+  // Button A (Hold vs Tap on locked screen)
+  if (btnA && !gpButtonAPreviouslyPressed) {
+    handleActionInput();
+  }
+  if (!btnA && gpButtonAPreviouslyPressed) {
+    handleActionRelease();
+  }
+  gpButtonAPreviouslyPressed = btnA;
+
+  if (btnB && !gpButtonBPreviouslyPressed) {
+    handleCancelInput();
+  }
+  gpButtonBPreviouslyPressed = btnB;
+
+  if (btnX && !gpButtonXPreviouslyPressed) {
+    handleXButtonInput();
+  }
+  gpButtonXPreviouslyPressed = btnX;
+
+  if (btnY && !gpButtonYPreviouslyPressed) {
+    handleYButtonInput();
+  }
+  gpButtonYPreviouslyPressed = btnY;
+
+  if (btnStart && !gpButtonStartPreviouslyPressed) {
+    handleStartButtonInput();
+  }
+  gpButtonStartPreviouslyPressed = btnStart;
 
   requestAnimationFrame(pollGamepad);
 }
@@ -2967,8 +3125,7 @@ function handleCancelInput() {
 
 function handleXButtonInput() {
   // Toggle audio across any screen
-  btnAudioToggle.click();
-  sound.playTextBlip();
+  setAudioMute(!sound.isAmbientMuted);
 }
 
 function handleYButtonInput() {
@@ -3013,16 +3170,31 @@ let activeKeyInterval = null;
 let currentKeyDir = null;
 
 window.addEventListener('keydown', (e) => {
-  // Cheat sequence listener on keyboard (press only, no auto-repeat)
-  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
-    if (e.code === 'ArrowUp') recordCheatDirection('UP');
-    else if (e.code === 'ArrowDown') recordCheatDirection('DOWN');
-    else if (e.code === 'ArrowRight') recordCheatDirection('RIGHT');
-    else if (e.code === 'ArrowLeft') recordCheatDirection('LEFT');
+  // Hotkey 'm' / 'M' toggles audio unless typing in an active text input
+  if ((e.code === 'KeyM' || e.key === 'm' || e.key === 'M') && document.activeElement !== secretPasscodeInput) {
+    e.preventDefault();
+    setAudioMute(!sound.isAmbientMuted);
+    return;
   }
 
-  // Modal Secret Override Keyboard Navigation
-  if (!modalSecretOverride.hasAttribute('hidden')) {
+  // Cheat sequence listener on keyboard (press only, no auto-repeat)
+  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
+    const isUp = e.code === 'ArrowUp' || e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === 'w' || e.key === 'W';
+    const isDown = e.code === 'ArrowDown' || e.key === 'ArrowDown' || e.code === 'KeyS' || e.key === 's' || e.key === 'S';
+    const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft' || e.code === 'KeyA' || e.key === 'a' || e.key === 'A';
+    const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight' || e.code === 'KeyD' || e.key === 'd' || e.key === 'D';
+
+    if (isUp || isDown || isLeft || isRight) {
+      if (state.currentScreen === 'LOCKED') e.preventDefault();
+      if (isUp) recordCheatDirection('UP');
+      else if (isDown) recordCheatDirection('DOWN');
+      else if (isLeft) recordCheatDirection('LEFT');
+      else if (isRight) recordCheatDirection('RIGHT');
+    }
+  }
+
+  // Modal Secret Override Keyboard Navigation (when not typing in text field)
+  if (!modalSecretOverride.hasAttribute('hidden') && document.activeElement !== secretPasscodeInput) {
     if (e.code === 'ArrowRight') {
       e.preventDefault();
       selectedTerminalKeyIndex = (selectedTerminalKeyIndex + 1) % TERMINAL_KEYS.length;
@@ -3218,19 +3390,10 @@ btnFightStrike.addEventListener('click', () => {
   resolveFightStrike();
 });
 
-btnAudioToggle.addEventListener('click', () => {
-  const isMuted = sound.toggleAmbientMute();
-  audioIcon.textContent = isMuted ? '🔇' : '🔊';
-  if (playlist) playlist.updateMuteState(isMuted);
-  if (finaleAudio) {
-    if (isMuted) {
-      finaleAudio.pause();
-    } else {
-      if ((state.currentScreen === 'NOTE' && state.currentRound === 4) || state.currentScreen === 'ALBUM') {
-        finaleAudio.play().catch(() => {});
-      }
-    }
-  }
+btnAudioToggle.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  setAudioMute(!sound.isAmbientMuted);
 });
 
 // --- 26. INITIALIZATION ---
