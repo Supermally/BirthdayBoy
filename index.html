@@ -77,10 +77,16 @@
 
         <p id="locked-subtext" class="locked-subtext">Return when the clock strikes zero!</p>
 
-        <!-- Secret Malachi Dev Override Peeking Squid -->
+        <!-- Secret Malachi Dev Override Peeking Squid (Right) -->
         <button id="btn-secret-peeker" class="secret-peeker" type="button" aria-label="Curious Peeking Squid" title="???">
           <div class="peeker-squid-sprite"></div>
           <span class="peeker-squid-label">DEV?</span>
+        </button>
+
+        <!-- Promising Fakeout Bypass Trigger (Left) -->
+        <button id="btn-bypass-peeker" class="bypass-peeker" type="button" aria-label="Emergency Splatfest Bypass Key" title="Instant Access Key">
+          <span class="bypass-key-icon">⚡</span>
+          <span class="bypass-key-label">BYPASS?</span>
         </button>
       </div>
     </section>
@@ -709,6 +715,55 @@
           <span id="fakeout-counter">TILES INKED: 0 / 67</span>
         </div>
         <button id="btn-fakeout-surrender" class="btn-game" type="button">OKAY OKAY I'LL WAIT!</button>
+      </div>
+    </div>
+
+    <!-- The Space Invaders Mosquito Fake-out Minigame Modal -->
+    <div id="modal-invaders-fakeout" class="modal-invaders-fakeout" hidden aria-modal="true" role="dialog">
+      <div class="invaders-box">
+        <header class="invaders-header">
+          <div class="invaders-badge">⚡ INSTANT ACCESS OVERRIDE ⚡</div>
+          <h2 class="invaders-title">MAINFRAME FIREWALL BYPASS</h2>
+          <p class="invaders-tagline">* EXTERMINATE THE NUMERICAL INFECTION: NUMBERS 6 &amp; 7! *</p>
+        </header>
+
+        <!-- Arcade Canvas Frame -->
+        <div class="invaders-canvas-frame">
+          <div class="invaders-hud">
+            <span id="invaders-hud-score" class="invaders-hud-score">SCORE: 0000</span>
+            <span class="invaders-hud-target">TARGETS: 6 &amp; 7</span>
+            <span id="invaders-hud-count" class="invaders-hud-count">LEFT: 12</span>
+          </div>
+          <canvas id="invaders-canvas" width="440" height="320" role="img" aria-label="Space Invaders Mosquito Game"></canvas>
+          <div id="invaders-touch-controls" class="invaders-touch-controls">
+            <button type="button" id="btn-invader-left" class="btn-invader-touch" aria-label="Move Left">◀</button>
+            <button type="button" id="btn-invader-fire" class="btn-invader-fire" aria-label="Shoot Blood Pellet">🩸 SUCK &amp; SHOOT</button>
+            <button type="button" id="btn-invader-right" class="btn-invader-touch" aria-label="Move Right">▶</button>
+          </div>
+        </div>
+
+        <div class="invaders-footer">
+          <p class="invaders-hint">CONTROLS: [← / →] or [A / D] to Move • [SPACE / ↑ / TAP] to Shoot Blood Pellets</p>
+          <button id="btn-invaders-cancel" class="btn-game btn-invaders-giveup" type="button">ABORT BYPASS</button>
+        </div>
+
+        <!-- Post-Game Comic Fakeout Reveal Screen -->
+        <div id="invaders-reveal-screen" class="invaders-reveal-screen" hidden>
+          <div class="reveal-inner-card">
+            <div class="reveal-comic-header">
+              <span class="reveal-emoji-spin">🦟😂</span>
+              <h3 class="reveal-title">⚠️ FAKEOUT DETECTED! ⚠️</h3>
+              <p class="reveal-subtitle">* YOU REALLY THOUGHT THAT WOULD WORK?! *</p>
+            </div>
+            <div class="reveal-dialogue-box">
+              <p class="reveal-line">* Malachi: "Did you seriously think piloting a blood-sucking mosquito shooting red pellets at literal numbers 6 and 7 would crack the Splatfest Vault?!"</p>
+              <p class="reveal-line">* Malachi: "Bro... you just wasted high-grade bug spray on math homework! 😭"</p>
+              <p class="reveal-line">* Malachi: "The vault is hermetically sealed until September 8th. No backdoors, no bug bites, no shortcuts!"</p>
+              <p class="reveal-highlight">🎉 HAPPY BIRTHDAY ZAMAN! NOW WAIT PATIENTLY! ❤️</p>
+            </div>
+            <button id="btn-invaders-accept-fakeout" class="btn-game btn-invaders-confirm" type="button">FINE, I'LL WAIT FOR SEPT 8TH! 😭</button>
+          </div>
+        </div>
       </div>
     </div>
 

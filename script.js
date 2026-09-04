@@ -848,6 +848,19 @@ const gridFakeout67 = document.getElementById('grid-fakeout-67');
 const fakeoutCounter = document.getElementById('fakeout-counter');
 const btnFakeoutSurrender = document.getElementById('btn-fakeout-surrender');
 
+// Space Invaders Mosquito Fakeout
+const btnBypassPeeker = document.getElementById('btn-bypass-peeker');
+const modalInvadersFakeout = document.getElementById('modal-invaders-fakeout');
+const invadersCanvas = document.getElementById('invaders-canvas');
+const invadersHudScore = document.getElementById('invaders-hud-score');
+const invadersHudCount = document.getElementById('invaders-hud-count');
+const btnInvaderLeft = document.getElementById('btn-invader-left');
+const btnInvaderRight = document.getElementById('btn-invader-right');
+const btnInvaderFire = document.getElementById('btn-invader-fire');
+const btnInvadersCancel = document.getElementById('btn-invaders-cancel');
+const invadersRevealScreen = document.getElementById('invaders-reveal-screen');
+const btnInvadersAcceptFakeout = document.getElementById('btn-invaders-accept-fakeout');
+
 // Album Elements (§20 Grand Finale)
 const btnAlbumBackNote = document.getElementById('btn-album-back-note');
 const btnAlbumReplay = document.getElementById('btn-album-replay');
@@ -1319,7 +1332,7 @@ function setupLockedInteractions() {
 
   // "You're early" personality: tapping anything gated shows cycling fun lines
   const handleEarlyInteraction = (e) => {
-    if (e.target.closest('#btn-audio-toggle') || e.target.closest('#locked-cat-sprite') || e.target.closest('#btn-secret-peeker')) return;
+    if (e.target.closest('#btn-audio-toggle') || e.target.closest('#locked-cat-sprite') || e.target.closest('#btn-secret-peeker') || e.target.closest('#btn-bypass-peeker')) return;
     showDialogue(getNextLockedDialogue(currentLockedTier || 4));
   };
 
@@ -1813,6 +1826,8 @@ function initSecretOverride() {
   if (btnDevPrev) btnDevPrev.onclick = () => devPrevPage();
   if (btnDevNext) btnDevNext.onclick = () => devNextPage();
   if (btnDevMenu) btnDevMenu.onclick = () => toggleDevModal();
+
+  setupSpaceInvadersFakeout();
 }
 
 function submitSecretOverride() {
@@ -1907,6 +1922,468 @@ function triggerFakeoutMinigame() {
     };
     gridFakeout67.appendChild(tile);
   }
+}
+
+// --- 9.2 SPACE INVADERS MOSQUITO FAKEOUT MINIGAME ---
+let invadersAnimationId = null;
+let invadersActive = false;
+let mosquitoShipX = 220;
+let mosquitoShipY = 280;
+let mosquitoLeftPressed = false;
+let mosquitoRightPressed = false;
+let mosquitoBloodPellets = [];
+let invaderSplatterParticles = [];
+let spaceInvadersTargets = [];
+let invadersDirection = 1; // 1: right, -1: left
+let invadersSpeed = 1.25;
+let invadersScore = 0;
+let invadersRemaining = 12;
+let lastPelletFireTime = 0;
+
+function setupSpaceInvadersFakeout() {
+  if (btnBypassPeeker) {
+    btnBypassPeeker.onclick = (e) => {
+      e.stopPropagation();
+      openSpaceInvadersFakeout();
+    };
+  }
+
+  if (btnInvadersCancel) {
+    btnInvadersCancel.onclick = () => {
+      closeSpaceInvadersFakeout();
+      showDialogue("* Bypass aborted! Security measures hold strong until September 8th! ❤️");
+    };
+  }
+
+  if (btnInvadersAcceptFakeout) {
+    btnInvadersAcceptFakeout.onclick = () => {
+      sound.resume();
+      sound.playTextBlip();
+      closeSpaceInvadersFakeout();
+      showDialogue("* Malachi: \"Nice mosquito piloting though, Zaman! See you September 8th!\" ❤️");
+    };
+  }
+
+  // Touch & on-screen button controls
+  if (btnInvaderLeft) {
+    btnInvaderLeft.onpointerdown = (e) => { e.preventDefault(); mosquitoLeftPressed = true; };
+    btnInvaderLeft.onpointerup = (e) => { e.preventDefault(); mosquitoLeftPressed = false; };
+    btnInvaderLeft.onpointerleave = () => { mosquitoLeftPressed = false; };
+    btnInvaderLeft.onpointercancel = () => { mosquitoLeftPressed = false; };
+  }
+  if (btnInvaderRight) {
+    btnInvaderRight.onpointerdown = (e) => { e.preventDefault(); mosquitoRightPressed = true; };
+    btnInvaderRight.onpointerup = (e) => { e.preventDefault(); mosquitoRightPressed = false; };
+    btnInvaderRight.onpointerleave = () => { mosquitoRightPressed = false; };
+    btnInvaderRight.onpointercancel = () => { mosquitoRightPressed = false; };
+  }
+  if (btnInvaderFire) {
+    btnInvaderFire.onpointerdown = (e) => {
+      e.preventDefault();
+      fireBloodPellet();
+    };
+  }
+
+  // Canvas tap / click to aim and fire
+  if (invadersCanvas) {
+    invadersCanvas.onpointerdown = (e) => {
+      const rect = invadersCanvas.getBoundingClientRect();
+      const clickX = ((e.clientX - rect.left) / rect.width) * invadersCanvas.width;
+      if (clickX < mosquitoShipX - 25) {
+        mosquitoShipX = Math.max(20, mosquitoShipX - 25);
+      } else if (clickX > mosquitoShipX + 25) {
+        mosquitoShipX = Math.min(invadersCanvas.width - 20, mosquitoShipX + 25);
+      }
+      fireBloodPellet();
+    };
+  }
+}
+
+function openSpaceInvadersFakeout() {
+  sound.resume();
+  sound.playContestAlert();
+  if (!modalInvadersFakeout) return;
+  modalInvadersFakeout.removeAttribute('hidden');
+  if (invadersRevealScreen) invadersRevealScreen.setAttribute('hidden', '');
+
+  // Reset Game State
+  invadersActive = true;
+  mosquitoShipX = 220;
+  mosquitoShipY = 280;
+  mosquitoLeftPressed = false;
+  mosquitoRightPressed = false;
+  mosquitoBloodPellets = [];
+  invaderSplatterParticles = [];
+  invadersDirection = 1;
+  invadersSpeed = 1.25;
+  invadersScore = 0;
+  invadersRemaining = 12;
+  lastPelletFireTime = 0;
+
+  // Build grid of 12 invaders: Row 0 is 6s (Electric Cyan), Row 1 is 7s (Bright Gold)
+  spaceInvadersTargets = [];
+  const colSpacing = 52;
+  const startX = 64;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 6; c++) {
+      spaceInvadersTargets.push({
+        x: startX + c * colSpacing,
+        y: 46 + r * 38,
+        width: 28,
+        height: 24,
+        val: r === 0 ? '6' : '7',
+        color: r === 0 ? '#00f0ff' : '#ffd23f',
+        alive: true,
+      });
+    }
+  }
+
+  updateInvadersHUD();
+
+  if (invadersAnimationId) cancelAnimationFrame(invadersAnimationId);
+  invadersAnimationId = requestAnimationFrame(spaceInvadersGameLoop);
+}
+
+function closeSpaceInvadersFakeout() {
+  invadersActive = false;
+  if (invadersAnimationId) {
+    cancelAnimationFrame(invadersAnimationId);
+    invadersAnimationId = null;
+  }
+  if (modalInvadersFakeout) {
+    modalInvadersFakeout.setAttribute('hidden', '');
+  }
+  if (invadersRevealScreen) {
+    invadersRevealScreen.setAttribute('hidden', '');
+  }
+}
+
+function moveMosquitoShip(dir) {
+  if (!invadersActive || !invadersCanvas) return;
+  const canvasW = invadersCanvas.width || 440;
+  mosquitoShipX = Math.max(20, Math.min(canvasW - 20, mosquitoShipX + dir * 18));
+}
+
+function fireBloodPellet() {
+  if (!invadersActive || !invadersCanvas) return;
+  const now = Date.now();
+  if (now - lastPelletFireTime < 160) return; // Responsive fire rate
+  if (mosquitoBloodPellets.length >= 5) return;
+  lastPelletFireTime = now;
+
+  mosquitoBloodPellets.push({
+    x: mosquitoShipX,
+    y: mosquitoShipY - 14,
+    vy: -6.8,
+    size: 4,
+  });
+
+  sound.playTextBlip();
+  triggerHaptic(20);
+}
+
+function updateInvadersHUD() {
+  if (invadersHudScore) {
+    invadersHudScore.textContent = `SCORE: ${String(invadersScore).padStart(4, '0')}`;
+  }
+  if (invadersHudCount) {
+    invadersHudCount.textContent = `LEFT: ${invadersRemaining}`;
+  }
+}
+
+function triggerInvadersFakeoutReveal() {
+  invadersActive = false;
+  sound.playStaticNoise();
+  triggerHaptic([60, 40, 100]);
+  if (invadersRevealScreen) {
+    invadersRevealScreen.removeAttribute('hidden');
+  }
+}
+
+function drawMosquitoSprite(ctx, x, y) {
+  const wingCycle = Math.sin(Date.now() * 0.045);
+  ctx.save();
+  ctx.translate(x, y);
+
+  // 1. Spindly articulated mosquito legs
+  ctx.strokeStyle = '#6b7280';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  // Left legs
+  ctx.beginPath();
+  ctx.moveTo(-4, 0); ctx.lineTo(-14, 4); ctx.lineTo(-18, 12);
+  ctx.moveTo(-4, 3); ctx.lineTo(-16, 7); ctx.lineTo(-20, 16);
+  ctx.moveTo(-4, -3); ctx.lineTo(-12, -4); ctx.lineTo(-15, 2);
+  // Right legs
+  ctx.moveTo(4, 0); ctx.lineTo(14, 4); ctx.lineTo(18, 12);
+  ctx.moveTo(4, 3); ctx.lineTo(16, 7); ctx.lineTo(20, 16);
+  ctx.moveTo(4, -3); ctx.lineTo(12, -4); ctx.lineTo(15, 2);
+  ctx.stroke();
+
+  // 2. Translucent buzzing wings
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.65)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.lineWidth = 1;
+  // Left wing
+  ctx.save();
+  ctx.translate(-4, -2);
+  ctx.rotate(-0.45 + wingCycle * 0.35);
+  ctx.beginPath();
+  ctx.ellipse(-12, -6, 14, 5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  // Right wing
+  ctx.save();
+  ctx.translate(4, -2);
+  ctx.rotate(0.45 - wingCycle * 0.35);
+  ctx.beginPath();
+  ctx.ellipse(12, -6, 14, 5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+
+  // 3. Abdomen (striped elongated tail holding sucked blood)
+  ctx.fillStyle = '#8b0024';
+  ctx.beginPath();
+  ctx.ellipse(0, 10, 5.5, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Abdomen crimson stripes
+  ctx.strokeStyle = '#ff2b5a';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-4, 6); ctx.lineTo(4, 6);
+  ctx.moveTo(-5, 10); ctx.lineTo(5, 10);
+  ctx.moveTo(-3, 14); ctx.lineTo(3, 14);
+  ctx.stroke();
+
+  // 4. Thorax (dark chitin)
+  ctx.fillStyle = '#1a1f2c';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 5, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 5. Head
+  ctx.fillStyle = '#10141e';
+  ctx.beginPath();
+  ctx.arc(0, -6, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 6. Glowing red mosquito eyes
+  ctx.fillStyle = '#ff0055';
+  ctx.beginPath();
+  ctx.arc(-2.5, -7, 1.8, 0, Math.PI * 2);
+  ctx.arc(2.5, -7, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  // Eye catchlights
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(-2, -7.5, 0.6, 0, Math.PI * 2);
+  ctx.arc(3, -7.5, 0.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 7. Sharp needle proboscis shooting blood
+  ctx.strokeStyle = '#d81159';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(0, -9);
+  ctx.lineTo(0, -20);
+  ctx.stroke();
+  // Blood bead at tip
+  ctx.fillStyle = '#ff0033';
+  ctx.beginPath();
+  ctx.arc(0, -20, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function spaceInvadersGameLoop() {
+  if (!invadersActive || !invadersCanvas) return;
+  const ctx = invadersCanvas.getContext('2d');
+  if (!ctx) return;
+
+  const w = invadersCanvas.width;
+  const h = invadersCanvas.height;
+
+  // Clear Canvas with retro background
+  ctx.fillStyle = '#06030b';
+  ctx.fillRect(0, 0, w, h);
+
+  // Background stars / retro grid dots
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  for (let sx = 15; sx < w; sx += 40) {
+    for (let sy = 15; sy < h - 50; sy += 40) {
+      ctx.fillRect(sx, sy, 1.5, 1.5);
+    }
+  }
+
+  // 1. Move Player
+  if (mosquitoLeftPressed) {
+    mosquitoShipX = Math.max(20, mosquitoShipX - 4.5);
+  }
+  if (mosquitoRightPressed) {
+    mosquitoShipX = Math.min(w - 20, mosquitoShipX + 4.5);
+  }
+
+  // 2. March Invaders (6s and 7s)
+  let shouldDrop = false;
+  let leftmost = w;
+  let rightmost = 0;
+  let lowestY = 0;
+
+  spaceInvadersTargets.forEach((target) => {
+    if (!target.alive) return;
+    if (target.x < leftmost) leftmost = target.x;
+    if (target.x + target.width > rightmost) rightmost = target.x + target.width;
+    if (target.y + target.height > lowestY) lowestY = target.y + target.height;
+  });
+
+  if (invadersDirection === 1 && rightmost >= w - 16) {
+    shouldDrop = true;
+    invadersDirection = -1;
+  } else if (invadersDirection === -1 && leftmost <= 16) {
+    shouldDrop = true;
+    invadersDirection = 1;
+  }
+
+  const currentSpeed = invadersSpeed * (1 + (12 - invadersRemaining) * 0.08);
+
+  spaceInvadersTargets.forEach((target) => {
+    if (!target.alive) return;
+    target.x += invadersDirection * currentSpeed;
+    if (shouldDrop) {
+      target.y += 14;
+    }
+  });
+
+  // Check if invaders reached player level
+  if (lowestY >= mosquitoShipY - 10 && invadersRemaining > 0) {
+    triggerInvadersFakeoutReveal();
+    return;
+  }
+
+  // 3. Update & Draw Blood Pellets
+  for (let i = mosquitoBloodPellets.length - 1; i >= 0; i--) {
+    const p = mosquitoBloodPellets[i];
+    p.y += p.vy;
+
+    // Draw Blood Pellet (crimson tear drop)
+    ctx.save();
+    ctx.fillStyle = '#ff0033';
+    ctx.shadowColor = '#ff0055';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    // Droplet tip
+    ctx.beginPath();
+    ctx.moveTo(p.x - p.size, p.y);
+    ctx.lineTo(p.x, p.y - p.size * 2);
+    ctx.lineTo(p.x + p.size, p.y);
+    ctx.fill();
+    // Shiny highlight
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(p.x - 1, p.y - 1, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Check hit against invaders
+    let hit = false;
+    for (let t = 0; t < spaceInvadersTargets.length; t++) {
+      const invader = spaceInvadersTargets[t];
+      if (!invader.alive) continue;
+      if (
+        p.x >= invader.x - 4 &&
+        p.x <= invader.x + invader.width + 4 &&
+        p.y >= invader.y - 18 &&
+        p.y <= invader.y + 6
+      ) {
+        invader.alive = false;
+        hit = true;
+        invadersRemaining--;
+        invadersScore += (invader.val === '7' ? 200 : 100);
+        updateInvadersHUD();
+        sound.playPlayerInk();
+        triggerHaptic(30);
+
+        // Spawn crimson blood & digital burst particles
+        for (let k = 0; k < 12; k++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = 1.5 + Math.random() * 3.5;
+          invaderSplatterParticles.push({
+            x: invader.x + invader.width / 2,
+            y: invader.y - 6,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            color: Math.random() > 0.4 ? '#ff0055' : invader.color,
+            size: 2 + Math.random() * 3,
+            life: 25,
+            maxLife: 25,
+          });
+        }
+        break;
+      }
+    }
+
+    if (hit || p.y < 0) {
+      mosquitoBloodPellets.splice(i, 1);
+    }
+  }
+
+  // 4. Update & Draw Splatter Particles
+  for (let i = invaderSplatterParticles.length - 1; i >= 0; i--) {
+    const pt = invaderSplatterParticles[i];
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.vy += 0.08; // gravity
+    pt.life--;
+
+    const alpha = pt.life / pt.maxLife;
+    ctx.fillStyle = pt.color;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, pt.size * alpha, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    if (pt.life <= 0) {
+      invaderSplatterParticles.splice(i, 1);
+    }
+  }
+
+  // 5. Draw Invaders (6s and 7s)
+  ctx.font = 'bold 20px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  spaceInvadersTargets.forEach((invader) => {
+    if (!invader.alive) return;
+    const hoverY = Math.sin(Date.now() * 0.007 + invader.x * 0.05) * 2;
+    ctx.save();
+    ctx.fillStyle = invader.color;
+    ctx.shadowColor = invader.color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(invader.val, invader.x + invader.width / 2, invader.y + hoverY);
+    ctx.restore();
+  });
+
+  // 6. Draw Mosquito Player Ship
+  drawMosquitoSprite(ctx, mosquitoShipX, mosquitoShipY);
+
+  // Check victory condition
+  if (invadersRemaining <= 0) {
+    invadersActive = false;
+    setTimeout(() => {
+      triggerInvadersFakeoutReveal();
+    }, 450);
+    return;
+  }
+
+  invadersAnimationId = requestAnimationFrame(spaceInvadersGameLoop);
 }
 
 // --- 10. COLOR PICKER & GUI ARROW SELECTION (§10 & §13) ---
@@ -3192,7 +3669,7 @@ let gpButtonXPreviouslyPressed = false;
 let gpButtonYPreviouslyPressed = false;
 let gpButtonStartPreviouslyPressed = false;
 
-let lockedFocusIndex = 0; // 0: cat sprite, 1: countdown card, 2: peeker dev squid
+let lockedFocusIndex = 0; // 0: cat sprite, 1: countdown card, 2: peeker dev squid, 3: bypass peeker
 let fakeoutTileFocusIndex = 0; // 0-15
 let albumButtonFocusIndex = 0; // 0: back, 1: replay
 let titleFocusSection = 'swatches'; // 'swatches' | 'start'
@@ -3201,7 +3678,8 @@ function updateLockedFocus() {
   const cat = document.getElementById('locked-cat-sprite');
   const card = document.getElementById('locked-countdown-card');
   const peeker = document.getElementById('btn-secret-peeker');
-  const targets = [cat, card, peeker];
+  const bypass = document.getElementById('btn-bypass-peeker');
+  const targets = [cat, card, peeker, bypass];
   targets.forEach((el, idx) => {
     if (!el) return;
     if (idx === lockedFocusIndex) {
@@ -3420,12 +3898,19 @@ function handleDirectionInput(dr, dc) {
     return;
   }
 
+  // 2b. Modal Space Invaders Fakeout active
+  if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
+    if (dc === 1) moveMosquitoShip(1);
+    else if (dc === -1) moveMosquitoShip(-1);
+    return;
+  }
+
   // 3. Locked Screen
   if (state.currentScreen === 'LOCKED') {
     if (dr === 1 || dc === 1) {
-      lockedFocusIndex = (lockedFocusIndex + 1) % 3;
+      lockedFocusIndex = (lockedFocusIndex + 1) % 4;
     } else if (dr === -1 || dc === -1) {
-      lockedFocusIndex = (lockedFocusIndex - 1 + 3) % 3;
+      lockedFocusIndex = (lockedFocusIndex - 1 + 4) % 4;
     }
     sound.playTextBlip();
     updateLockedFocus();
@@ -3533,6 +4018,16 @@ function handleActionInput() {
     return;
   }
 
+  // Modal Space Invaders Fakeout active
+  if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
+    if (invadersRevealScreen && !invadersRevealScreen.hasAttribute('hidden')) {
+      if (btnInvadersAcceptFakeout) btnInvadersAcceptFakeout.click();
+    } else {
+      fireBloodPellet();
+    }
+    return;
+  }
+
   // Locked Screen
   if (state.currentScreen === 'LOCKED') {
     if (lockedFocusIndex === 0) {
@@ -3551,6 +4046,9 @@ function handleActionInput() {
     } else if (lockedFocusIndex === 2) {
       // Peeker Dev Squid
       if (btnSecretPeeker) btnSecretPeeker.click();
+    } else if (lockedFocusIndex === 3) {
+      // Promising Bypass Button
+      if (btnBypassPeeker) btnBypassPeeker.click();
     }
     return;
   }
@@ -3641,6 +4139,15 @@ function handleCancelInput() {
     return;
   }
 
+  if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
+    if (invadersRevealScreen && !invadersRevealScreen.hasAttribute('hidden')) {
+      if (btnInvadersAcceptFakeout) btnInvadersAcceptFakeout.click();
+    } else {
+      closeSpaceInvadersFakeout();
+    }
+    return;
+  }
+
   if (state.currentScreen === 'VESSEL' && !vesselStepName.hasAttribute('hidden')) {
     pressVirtualKey('DEL');
     return;
@@ -3711,6 +4218,31 @@ window.addEventListener('keydown', (e) => {
       skipOrAdvanceDialogue();
       return;
     }
+  }
+
+  // Space Invaders Mosquito Fakeout keyboard controls
+  if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
+    if (invadersRevealScreen && !invadersRevealScreen.hasAttribute('hidden')) {
+      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
+        e.preventDefault();
+        if (btnInvadersAcceptFakeout) btnInvadersAcceptFakeout.click();
+      }
+      return;
+    }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      e.preventDefault();
+      mosquitoLeftPressed = true;
+    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      e.preventDefault();
+      mosquitoRightPressed = true;
+    } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      e.preventDefault();
+      fireBloodPellet();
+    } else if (e.code === 'Escape') {
+      e.preventDefault();
+      closeSpaceInvadersFakeout();
+    }
+    return;
   }
 
   // Hotkey 'm' / 'M' toggles audio unless typing in an active text input
@@ -3900,6 +4432,14 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
+  if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      mosquitoLeftPressed = false;
+    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      mosquitoRightPressed = false;
+    }
+  }
+
   const dir = keyMap[e.code] || keyMap[e.key];
   if (dir && currentKeyDir === dir) {
     clearInterval(activeKeyInterval);
@@ -4235,6 +4775,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (urlParams.get('fakeout') === 'open') {
       triggerFakeoutMinigame();
+    } else if (urlParams.get('invaders') === 'open') {
+      openSpaceInvadersFakeout();
     } else if (urlParams.get('peek') === 'active') {
       const peekEl = document.getElementById('locked-photo-peek');
       if (peekEl) peekEl.classList.add('peek-active');
