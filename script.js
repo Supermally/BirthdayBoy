@@ -856,7 +856,6 @@ const btnStart = document.getElementById('btn-start');
 const btnOpenNote = document.getElementById('btn-open-note');
 const btnReplay = document.getElementById('btn-replay');
 const btnAudioToggle = document.getElementById('btn-audio-toggle');
-const audioIcon = document.getElementById('audio-icon');
 
 const hudTimer = document.getElementById('hud-timer');
 const hudTeamPlayer = document.getElementById('hud-team-player');
@@ -919,7 +918,6 @@ const vesselRejectionText = document.getElementById('vessel-rejection-text');
 const vesselKeyboard = document.getElementById('vessel-keyboard');
 
 // Key Control Info Bar (§17)
-const inputHelpBar = document.getElementById('input-help-bar');
 const inputHelpIcon = document.getElementById('input-help-icon');
 const inputHelpText = document.getElementById('input-help-text');
 
