@@ -1699,10 +1699,6 @@ function devSetTier(tierNumber) {
       devJumpToScreen('LOCKED');
     }
     triggerTier0UnlockTransition();
-    if (terminalStatus) {
-      terminalStatus.style.color = 'var(--ink-yellow)';
-      terminalStatus.textContent = '* TIER 0 UNLOCKED! GATES ARE OPENING!';
-    }
     return;
   }
   isTier0Transitioning = false;
@@ -1718,10 +1714,16 @@ function devSetTier(tierNumber) {
     lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
   }
   updateLockedCountdown(tierNumber);
-  if (terminalStatus) {
-    terminalStatus.style.color = 'var(--ink-teal)';
-    terminalStatus.textContent = `* SIMULATING TIER ${tierNumber}! (Time changed & counting down)`;
+
+  // Trigger visual switch pulse on locked content & show tier dialogue!
+  const lockedContent = document.querySelector('.locked-content');
+  if (lockedContent) {
+    lockedContent.classList.remove('tier-switch-pulse');
+    void lockedContent.offsetWidth; // trigger reflow
+    lockedContent.classList.add('tier-switch-pulse');
   }
+  const tierLine = getNextLockedDialogue(tierNumber);
+  showDialogue(tierLine);
 }
 
 function devResetTime() {
@@ -1742,10 +1744,14 @@ function devResetTime() {
     lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
   }
   updateLockedCountdown();
-  if (terminalStatus) {
-    terminalStatus.style.color = 'var(--gold)';
-    terminalStatus.textContent = '* RESTORED REAL LIVE COUNTDOWN TIME!';
+
+  const lockedContent = document.querySelector('.locked-content');
+  if (lockedContent) {
+    lockedContent.classList.remove('tier-switch-pulse');
+    void lockedContent.offsetWidth;
+    lockedContent.classList.add('tier-switch-pulse');
   }
+  showDialogue("* Restored real live countdown time!");
 }
 
 function devSetRound(roundNum) {
@@ -1794,25 +1800,33 @@ function updateDevModalUI() {
   const btnCancel = document.getElementById('btn-cancel-override');
 
   if (state.devModeActive) {
-    if (termHeader) termHeader.textContent = '🛠️ DEV SCREEN: MALACHI_CONTROLS';
-    if (termPrompt) termPrompt.textContent = '* OPERATOR MALACHI // CLEARANCE: DEV MODE ACTIVE';
-    if (termSubprompt) termSubprompt.textContent = '* Jump to any screen or test countdown/boss states:';
+    modalSecretOverride.classList.add('dev-mode-active');
+    if (termHeader) termHeader.textContent = '🛠️ DEV CONTROLS & TESTER';
+    if (termPrompt) termPrompt.setAttribute('hidden', '');
+    if (termSubprompt) termSubprompt.setAttribute('hidden', '');
     if (termInputWrap) termInputWrap.setAttribute('hidden', '');
     if (termKeyboard) {
       termKeyboard.setAttribute('hidden', '');
       termKeyboard.style.display = 'none';
     }
     if (btnSubmit) btnSubmit.setAttribute('hidden', '');
-    if (btnCancel) btnCancel.textContent = '✖ CLOSE DEV SCREEN';
+    if (btnCancel) btnCancel.textContent = '✖ CLOSE DEV PANEL';
     if (devPanel) devPanel.removeAttribute('hidden');
     if (terminalStatus) {
       terminalStatus.style.color = 'var(--ink-teal)';
-      terminalStatus.textContent = `* Current Screen: [${state.currentScreen}]. Accessible on each page:`;
+      terminalStatus.textContent = `* Screen: [${state.currentScreen}] • Click any button to activate & view!`;
     }
   } else {
+    modalSecretOverride.classList.remove('dev-mode-active');
     if (termHeader) termHeader.textContent = 'TERMINAL: MALACHI_OVERRIDE';
-    if (termPrompt) termPrompt.textContent = '* RESTRICTED ACCESS // OPERATOR CLEARANCE REQUIRED';
-    if (termSubprompt) termSubprompt.textContent = '* Enter the secret override passcode:';
+    if (termPrompt) {
+      termPrompt.removeAttribute('hidden');
+      termPrompt.textContent = '* RESTRICTED ACCESS // OPERATOR CLEARANCE REQUIRED';
+    }
+    if (termSubprompt) {
+      termSubprompt.removeAttribute('hidden');
+      termSubprompt.textContent = '* Enter the secret override passcode:';
+    }
     if (termInputWrap) termInputWrap.removeAttribute('hidden');
     if (btnSubmit) btnSubmit.removeAttribute('hidden');
     if (btnCancel) btnCancel.textContent = 'ABORT';
@@ -1853,6 +1867,25 @@ function triggerDevCheatUnlock() {
 function initSecretOverride() {
   initTerminalKeyboard();
 
+  const btnCloseX = document.getElementById('btn-close-terminal-x');
+  if (btnCloseX) {
+    btnCloseX.onclick = () => {
+      sound.resume();
+      sound.playTextBlip();
+      modalSecretOverride.setAttribute('hidden', '');
+    };
+  }
+
+  if (modalSecretOverride) {
+    modalSecretOverride.addEventListener('click', (e) => {
+      if (e.target === modalSecretOverride) {
+        sound.resume();
+        sound.playTextBlip();
+        modalSecretOverride.setAttribute('hidden', '');
+      }
+    });
+  }
+
   if (btnSecretPeeker) {
     const spriteEl = btnSecretPeeker.querySelector('.peeker-squid-sprite');
     if (spriteEl && !spriteEl.hasChildNodes()) {
@@ -1883,7 +1916,9 @@ function initSecretOverride() {
       sound.resume();
       sound.playTextBlip();
       modalSecretOverride.setAttribute('hidden', '');
-      showDialogue("* Back to the countdown you go! See you on the 8th, Zaman! ❤️");
+      if (!state.devModeActive) {
+        showDialogue("* Back to the countdown you go! See you on the 8th, Zaman! ❤️");
+      }
     };
   }
 
@@ -1914,9 +1949,11 @@ function initSecretOverride() {
   }
 
   // Wire up Dev Control Panel Buttons inside Modal (§16)
+  // Automatically close modal each time any tier or page button is clicked!
   document.querySelectorAll('.dev-btn').forEach((btn) => {
     btn.onclick = (e) => {
       e.stopPropagation();
+      modalSecretOverride.setAttribute('hidden', '');
       if (btn.dataset.devScreen) {
         devJumpToScreen(btn.dataset.devScreen);
       } else if (btn.dataset.devTier !== undefined) {

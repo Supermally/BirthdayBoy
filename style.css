@@ -2321,6 +2321,70 @@ body.controller-mode .vessel-keyboard {
   overflow-y: auto;
 }
 
+/* Compact Dev Mode Palette (Non-Blocking & Sleek) */
+.modal-secret-override.dev-mode-active {
+  background: rgba(10, 4, 18, 0.45);
+  backdrop-filter: blur(2px);
+  align-items: flex-start;
+  padding-top: clamp(48px, 8vh, 70px);
+}
+
+.modal-secret-override.dev-mode-active .secret-terminal-box {
+  max-width: 430px;
+  background: rgba(13, 6, 20, 0.95);
+  border: 2px solid var(--ink-teal);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 24px rgba(45, 227, 200, 0.35);
+  border-radius: 6px;
+  animation: devPanelPop 180ms ease forwards;
+}
+
+@keyframes devPanelPop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-secret-override.dev-mode-active .terminal-body {
+  padding: 10px 14px 14px 14px;
+  gap: 8px;
+}
+
+.modal-secret-override.dev-mode-active .dev-control-panel {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: none;
+  gap: 8px;
+}
+
+.terminal-close-x {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #a49cb5;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.terminal-close-x:hover {
+  color: #ffffff;
+  background: rgba(255, 77, 77, 0.6);
+}
+
+/* Tier Switch Pulse Effect on Locked Screen */
+.tier-switch-pulse {
+  animation: tierSwitchPop 450ms ease-out;
+}
+
+@keyframes tierSwitchPop {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.035); filter: brightness(1.25) drop-shadow(0 0 18px var(--ink-teal)); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
 .terminal-header {
   background: #190e29;
   padding: 8px 12px;
