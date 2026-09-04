@@ -23,9 +23,20 @@
       <span id="audio-icon">🔇</span>
     </button>
   </aside>
+ 
+   <!-- Floating Persistent Dev Bar (§16 Dev Mode) -->
+   <div id="dev-floating-bar" class="dev-floating-bar" hidden aria-label="Developer Navigation Bar">
+     <button id="dev-bar-prev" type="button" class="dev-bar-btn" title="Previous Page (Shortcut: [ )">◀ PREV</button>
+     <div class="dev-bar-indicator">
+       <span class="dev-bar-tag">DEV MODE</span>
+       <span id="dev-bar-current-page" class="dev-bar-screen">PAGE: LOCKED</span>
+     </div>
+     <button id="dev-bar-next" type="button" class="dev-bar-btn" title="Next Page (Shortcut: ] )">NEXT ▶</button>
+     <button id="dev-bar-menu" type="button" class="dev-bar-btn dev-bar-menu-btn" title="Open Dev Panel (Shortcut: \ )">⚙️ STATES</button>
+   </div>
 
-  <!-- Main Container max-width 520px -->
-  <main id="app" class="screen-title-active">
+   <!-- Main Container max-width 520px -->
+   <main id="app" class="screen-title-active">
     
     <!-- ==================== SCREEN 0: BIRTHDAY LOCKED (§16) ==================== -->
     <section id="screen-locked" class="game-screen" aria-label="Birthday Countdown Screen" hidden>
@@ -99,13 +110,6 @@
           <p class="menu-title">SELECT INK COLOR:</p>
           <div class="swatches-list" id="swatches-container">
             <!-- Injected dynamically via JS: Reef, Bubblegum, Wasabi, Abyss, Cyan -->
-          </div>
-        </div>
-
-        <div class="title-hero-badge" aria-hidden="true">
-          <div class="badge-inner">
-            <span class="badge-label">READY TO INK</span>
-            <span class="badge-vs" id="title-badge-vs">TEAM ZAMAN vs THE CLOCK</span>
           </div>
         </div>
 
@@ -626,6 +630,62 @@
             <button id="btn-cancel-override" class="btn-game btn-terminal-cancel" type="button">ABORT</button>
           </div>
           <p id="terminal-status" class="terminal-status" aria-live="polite"></p>
+
+          <!-- Dev Mode State & Screen Testing Control Panel -->
+          <div id="dev-control-panel" class="dev-control-panel">
+            <div class="dev-panel-header">
+              <span class="dev-panel-title">🛠️ DEV CONTROLS &amp; STATE TESTER</span>
+            </div>
+
+            <!-- Screen Skip Section -->
+            <div class="dev-control-group">
+              <p class="dev-group-label">SKIP TO SCREEN / PAGE:</p>
+              <div class="dev-btn-row" id="dev-screens-row">
+                <button type="button" class="dev-btn" data-dev-screen="LOCKED">0: LOCKED</button>
+                <button type="button" class="dev-btn" data-dev-screen="VESSEL">1: VESSEL</button>
+                <button type="button" class="dev-btn" data-dev-screen="TITLE">2: TITLE</button>
+                <button type="button" class="dev-btn" data-dev-screen="MATCH">3: MATCH</button>
+                <button type="button" class="dev-btn" data-dev-screen="BOSS">4: BOSS</button>
+                <button type="button" class="dev-btn" data-dev-screen="REVEAL">5: REVEAL</button>
+                <button type="button" class="dev-btn" data-dev-screen="NOTE">6: NOTE</button>
+                <button type="button" class="dev-btn" data-dev-screen="ALBUM">7: ALBUM</button>
+              </div>
+            </div>
+
+            <!-- Countdown Tiers Section -->
+            <div class="dev-control-group">
+              <p class="dev-group-label">COUNTDOWN TIERS (LOCKED SCREEN):</p>
+              <div class="dev-btn-row">
+                <button type="button" class="dev-btn" data-dev-tier="4">TIER 4 (5 DAYS)</button>
+                <button type="button" class="dev-btn" data-dev-tier="3">TIER 3 (3 DAYS)</button>
+                <button type="button" class="dev-btn" data-dev-tier="2">TIER 2 (1 DAY)</button>
+                <button type="button" class="dev-btn" data-dev-tier="1">TIER 1 (&lt;4H)</button>
+                <button type="button" class="dev-btn" data-dev-tier="0">TIER 0 (UNLOCKED)</button>
+              </div>
+            </div>
+
+            <!-- Game Round Section -->
+            <div class="dev-control-group">
+              <p class="dev-group-label">SET TOURNAMENT ROUND:</p>
+              <div class="dev-btn-row">
+                <button type="button" class="dev-btn" data-dev-round="1">ROUND 1</button>
+                <button type="button" class="dev-btn" data-dev-round="2">ROUND 2</button>
+                <button type="button" class="dev-btn" data-dev-round="3">ROUND 3 (BOSS)</button>
+                <button type="button" class="dev-btn" data-dev-round="4">ROUND 4 (FINALE)</button>
+              </div>
+            </div>
+
+            <!-- Boss Battle HP Section -->
+            <div class="dev-control-group">
+              <p class="dev-group-label">SET BOSS HP / PHASE:</p>
+              <div class="dev-btn-row">
+                <button type="button" class="dev-btn" data-dev-bosshp="3">3 HP (MAX)</button>
+                <button type="button" class="dev-btn" data-dev-bosshp="2">2 HP (PHASE 2)</button>
+                <button type="button" class="dev-btn" data-dev-bosshp="1">1 HP (PHASE 3)</button>
+                <button type="button" class="dev-btn" data-dev-bosshp="0">0 HP (DEFEAT)</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

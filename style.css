@@ -2814,4 +2814,129 @@ html, body {
   to { transform: translateX(-50%) scale(1.08); }
 }
 
+/* --- Floating Dev Mode Bar (§16) --- */
+.dev-floating-bar {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 8, 26, 0.94);
+  border: 2px solid var(--ink-teal, #00f0ff);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+}
+
+.dev-bar-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.dev-bar-tag {
+  color: #ffd23f;
+  font-size: 6px;
+  letter-spacing: 1px;
+}
+
+.dev-bar-screen {
+  color: #ffffff;
+  font-size: 8px;
+}
+
+.dev-bar-btn {
+  background: var(--void-2, #181425);
+  color: var(--ink-teal, #00f0ff);
+  border: 1px solid var(--ink-teal, #00f0ff);
+  padding: 5px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  cursor: pointer;
+  transition: transform 60ms ease, background 0.1s ease;
+}
+
+.dev-bar-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 240, 255, 0.2);
+}
+
+.dev-bar-menu-btn {
+  background: #3a1548;
+  color: #ffd23f;
+  border-color: #ffd23f;
+}
+
+/* --- Dev Control Panel inside Terminal Modal --- */
+.dev-control-panel {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(0, 240, 255, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-panel-header {
+  text-align: center;
+}
+
+.dev-panel-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #ffd23f;
+  text-shadow: 0 0 8px rgba(255, 210, 63, 0.5);
+  letter-spacing: 1px;
+}
+
+.dev-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dev-group-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--ink-teal, #00f0ff);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.dev-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dev-btn {
+  background: #0f1026;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s ease;
+}
+
+.dev-btn:hover, .dev-btn.gamepad-focused {
+  background: var(--ink-teal, #00f0ff);
+  color: #000000;
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+.dev-btn:active {
+  transform: translateY(1px);
+}
+
+
 

@@ -1085,14 +1085,15 @@ function updateLockedCountdown(forceTier = null) {
   const now = Date.now();
   let diff = UNLOCK_DATE.getTime() - now;
 
-  if (forceTier) {
+  if (forceTier !== null && forceTier !== undefined) {
     if (forceTier === 4) diff = 4 * 86400000 + 7 * 3600000;
     else if (forceTier === 3) diff = 2 * 86400000 + 5 * 3600000;
     else if (forceTier === 2) diff = 18 * 3600000 + 30 * 60000;
     else if (forceTier === 1) diff = 45 * 60000 + 30000;
+    else if (forceTier === 0) diff = 0;
   }
 
-  if (!forceTier && diff <= 0) {
+  if (diff <= 0) {
     if (lockedCountdownInterval) {
       clearInterval(lockedCountdownInterval);
       lockedCountdownInterval = null;
@@ -1116,7 +1117,7 @@ function updateLockedCountdown(forceTier = null) {
   setDigit('lock-mins', mins);
   setDigit('lock-secs', secs);
 
-  const tier = forceTier || getCountdownTier(diff);
+  const tier = (forceTier !== null && forceTier !== undefined) ? forceTier : getCountdownTier(diff);
   applyLockedTier(tier, diff);
 }
 
@@ -1279,18 +1280,13 @@ function pressTerminalKey(key) {
 }
 
 // Controller & Keyboard Cheat Code Sequence Support
+// Non-conflicting with Konami Code (Cheat starts with UP, UP, DOWN, RIGHT... whereas Konami starts with UP, UP, DOWN, DOWN...)
 let devCheatSequence = [];
 let devCheatTimer = null;
 
 const CHEAT_PATTERNS = [
-  ['UP', 'UP', 'DOWN', 'RIGHT', 'LEFT'],                         // Up, Up, Down, Right, Left (Primary)
+  ['UP', 'UP', 'DOWN', 'RIGHT', 'LEFT'],                         // Up, Up, Down, Right, Left (Primary user cheat)
   ['UP', 'UP', 'DOWN', 'LEFT', 'RIGHT'],                         // Up, Up, Down, Left, Right
-  ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'RIGHT', 'LEFT', 'RIGHT'], // Classic Konami Code
-  ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'RIGHT'],
-  ['UP', 'UP', 'DOWN', 'DOWN'],
-  ['UP', 'DOWN', 'LEFT', 'RIGHT'],
-  ['UP', 'DOWN', 'RIGHT', 'LEFT'],
-  ['UP', 'DOWN', 'UP', 'DOWN'],
 ];
 
 const DIR_SYMBOLS = { UP: '↑', DOWN: '↓', LEFT: '←', RIGHT: '→' };
@@ -1313,6 +1309,9 @@ function updateCheatVisualFeedback() {
 }
 
 function recordCheatDirection(dir) {
+  // Only record cheats when on LOCKED screen or inside dev override modal
+  if (state.currentScreen !== 'LOCKED' && modalSecretOverride.hasAttribute('hidden')) return;
+
   sound.resume();
   sound.playTextBlip();
 
@@ -1323,13 +1322,13 @@ function recordCheatDirection(dir) {
   }, 3500);
 
   devCheatSequence.push(dir);
-  if (devCheatSequence.length > 12) {
+  if (devCheatSequence.length > 8) {
     devCheatSequence.shift();
   }
 
   updateCheatVisualFeedback();
 
-  // Check if any pattern matches the trailing inputs
+  // Check if pattern matches
   for (const pattern of CHEAT_PATTERNS) {
     if (devCheatSequence.length >= pattern.length) {
       const slice = devCheatSequence.slice(-pattern.length);
@@ -1350,18 +1349,154 @@ function recordCheatDirection(dir) {
   }
 }
 
+// --- DEV MODE STATE CONTROLLER & SCREEN SKIPPING ---
+const DEV_PAGES = ['LOCKED', 'VESSEL', 'TITLE', 'MATCH', 'BOSS', 'REVEAL', 'NOTE', 'ALBUM'];
+
+function enableDevMode() {
+  state.devModeActive = true;
+  const devBar = document.getElementById('dev-floating-bar');
+  if (devBar) devBar.removeAttribute('hidden');
+  updateDevBarDisplay();
+}
+
+function updateDevBarDisplay() {
+  const pageLabel = document.getElementById('dev-bar-current-page');
+  if (pageLabel) {
+    pageLabel.textContent = `PAGE: ${state.currentScreen}`;
+  }
+}
+
+function devJumpToScreen(screenName) {
+  if (!DEV_PAGES.includes(screenName)) return;
+  sound.resume();
+  sound.playTextBlip();
+
+  if (lockedCountdownInterval) {
+    clearInterval(lockedCountdownInterval);
+    lockedCountdownInterval = null;
+  }
+  clearInterval(state.timerInterval);
+  clearInterval(state.rivalInterval);
+  clearTimeout(dialogueTypingTimeout);
+  if (dialogueBox) dialogueBox.setAttribute('hidden', '');
+
+  showScreen(screenName);
+
+  if (screenName === 'LOCKED') {
+    setupLockedInteractions();
+    updateLockedCountdown();
+    lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
+  } else if (screenName === 'VESSEL') {
+    if (vesselStepSprite) vesselStepSprite.removeAttribute('hidden');
+    if (vesselStepName) vesselStepName.setAttribute('hidden', '');
+    if (vesselStepRejection) vesselStepRejection.setAttribute('hidden', '');
+    if (playlist) playlist.start();
+  } else if (screenName === 'TITLE') {
+    if (playlist) playlist.start();
+  } else if (screenName === 'MATCH') {
+    startNewMatch();
+  } else if (screenName === 'BOSS') {
+    startBossBattle();
+  } else if (screenName === 'REVEAL') {
+    updateMatchResults();
+  } else if (screenName === 'NOTE') {
+    transitionToNote();
+  } else if (screenName === 'ALBUM') {
+    playGrandFinaleMusic();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  updateDevBarDisplay();
+}
+
+function devNextPage() {
+  const currentIdx = DEV_PAGES.indexOf(state.currentScreen);
+  const nextIdx = (currentIdx + 1) % DEV_PAGES.length;
+  devJumpToScreen(DEV_PAGES[nextIdx]);
+}
+
+function devPrevPage() {
+  const currentIdx = DEV_PAGES.indexOf(state.currentScreen);
+  const prevIdx = (currentIdx - 1 + DEV_PAGES.length) % DEV_PAGES.length;
+  devJumpToScreen(DEV_PAGES[prevIdx]);
+}
+
+function devSetTier(tierNumber) {
+  sound.resume();
+  sound.playTextBlip();
+  if (state.currentScreen !== 'LOCKED') {
+    devJumpToScreen('LOCKED');
+  }
+  updateLockedCountdown(tierNumber);
+  if (terminalStatus) {
+    terminalStatus.style.color = 'var(--ink-teal)';
+    terminalStatus.textContent = `* COUNTDOWN FORCED TO TIER ${tierNumber}!`;
+  }
+}
+
+function devSetRound(roundNum) {
+  sound.resume();
+  sound.playTextBlip();
+  state.currentRound = roundNum;
+  if (state.currentScreen !== 'MATCH' && state.currentScreen !== 'NOTE') {
+    devJumpToScreen('MATCH');
+  } else if (state.currentScreen === 'MATCH') {
+    startNewMatch();
+  } else if (state.currentScreen === 'NOTE') {
+    transitionToNote();
+  }
+  if (terminalStatus) {
+    terminalStatus.style.color = 'var(--ink-teal)';
+    terminalStatus.textContent = `* SET TOURNAMENT TO ROUND ${roundNum}!`;
+  }
+}
+
+function devSetBossHP(hp) {
+  sound.resume();
+  sound.playTextBlip();
+  if (state.currentScreen !== 'BOSS') {
+    devJumpToScreen('BOSS');
+  }
+  state.bossHealth = Math.max(0, hp);
+  updateBossHealthUI();
+  if (state.bossHealth === 0) {
+    defeatBoss();
+  }
+  if (terminalStatus) {
+    terminalStatus.style.color = 'var(--ink-teal)';
+    terminalStatus.textContent = `* SET BOSS HP TO ${hp}!`;
+  }
+}
+
+function toggleDevModal() {
+  sound.resume();
+  sound.playTextBlip();
+  if (!modalSecretOverride) return;
+  if (modalSecretOverride.hasAttribute('hidden')) {
+    modalSecretOverride.removeAttribute('hidden');
+    if (secretPasscodeInput) secretPasscodeInput.value = '';
+    if (terminalStatus) {
+      terminalStatus.textContent = '* DEV CONSOLE ACTIVE. Choose a screen or state:';
+      terminalStatus.style.color = 'var(--ink-teal)';
+    }
+  } else {
+    modalSecretOverride.setAttribute('hidden', '');
+  }
+}
+
 function triggerDevCheatUnlock() {
+  enableDevMode();
   sound.resume();
   sound.playDeterminationFanfare();
   triggerHaptic([100, 50, 100, 50, 200]);
   modalSecretOverride.removeAttribute('hidden');
   secretPasscodeInput.value = 'OCTO-CHAMPION-2026';
   terminalStatus.style.color = 'var(--ink-teal)';
-  terminalStatus.textContent = '* CHEAT CODE ACTIVATED!\n* Operator Malachi Authenticated! Unlocking...';
+  terminalStatus.textContent = '* CHEAT CODE ACTIVATED!\n* Operator Malachi Authenticated! Dev Mode Enabled!';
 
   setTimeout(() => {
     modalSecretOverride.setAttribute('hidden', '');
-    showScreen('TITLE');
+    devJumpToScreen('TITLE');
   }, 1100);
 }
 
@@ -1417,6 +1552,30 @@ function initSecretOverride() {
       showDialogue("* Back to the countdown you go! See you on September 8th, Zaman! ❤️");
     };
   }
+
+  // Wire up Dev Control Panel Buttons inside Modal (§16)
+  document.querySelectorAll('.dev-btn').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (btn.dataset.devScreen) {
+        devJumpToScreen(btn.dataset.devScreen);
+      } else if (btn.dataset.devTier !== undefined) {
+        devSetTier(parseInt(btn.dataset.devTier, 10));
+      } else if (btn.dataset.devRound !== undefined) {
+        devSetRound(parseInt(btn.dataset.devRound, 10));
+      } else if (btn.dataset.devBosshp !== undefined) {
+        devSetBossHP(parseInt(btn.dataset.devBosshp, 10));
+      }
+    };
+  });
+
+  // Wire up Floating Dev Bar (§16)
+  const btnDevPrev = document.getElementById('dev-bar-prev');
+  const btnDevNext = document.getElementById('dev-bar-next');
+  const btnDevMenu = document.getElementById('dev-bar-menu');
+  if (btnDevPrev) btnDevPrev.onclick = () => devPrevPage();
+  if (btnDevNext) btnDevNext.onclick = () => devNextPage();
+  if (btnDevMenu) btnDevMenu.onclick = () => toggleDevModal();
 }
 
 function submitSecretOverride() {
@@ -1430,14 +1589,15 @@ function submitSecretOverride() {
   });
 
   if (isMatch) {
+    enableDevMode();
     terminalStatus.style.color = 'var(--ink-teal)';
-    terminalStatus.textContent = '* DEV OVERRIDE CONFIRMED. Welcome, Operator Malachi!\n* Unlocking Splatfest for early inspection...';
+    terminalStatus.textContent = '* DEV OVERRIDE CONFIRMED. Welcome, Operator Malachi!\n* Dev Mode Enabled! Screen skipping unlocked.';
     sound.playDeterminationFanfare();
     triggerHaptic([50, 50, 100, 50, 200]);
 
     setTimeout(() => {
       modalSecretOverride.setAttribute('hidden', '');
-      showScreen('TITLE');
+      devJumpToScreen('TITLE');
     }, 1100);
     return;
   }
@@ -2608,16 +2768,42 @@ function initAlbumScreen() {
   }
 }
 
-// --- 21. DIALOGUE BOX ENGINE ---
+// --- 21. DIALOGUE BOX ENGINE WITH INSTANT SKIP (§15 & §16) ---
 let dialogueTypingTimeout = null;
+let isDialogueTyping = false;
+let currentDialogueFullText = '';
+let currentDialogueCallback = null;
+
+function skipOrAdvanceDialogue() {
+  if (!dialogueBox || dialogueBox.hasAttribute('hidden')) return;
+
+  if (isDialogueTyping) {
+    // 1. Skip typewriter immediately to completion!
+    clearTimeout(dialogueTypingTimeout);
+    dialogueText.textContent = currentDialogueFullText;
+    isDialogueTyping = false;
+    sound.playTextBlip();
+  } else {
+    // 2. Already finished typing -> advance and dismiss!
+    dialogueBox.setAttribute('hidden', '');
+    const cb = currentDialogueCallback;
+    currentDialogueCallback = null;
+    if (cb) cb();
+  }
+}
 
 function showDialogue(text, onComplete) {
   dialogueBox.removeAttribute('hidden');
   dialogueText.textContent = '';
   clearTimeout(dialogueTypingTimeout);
 
+  currentDialogueFullText = text;
+  currentDialogueCallback = onComplete;
+  isDialogueTyping = true;
+
   let i = 0;
   function typeChar() {
+    if (!isDialogueTyping) return;
     if (i < text.length) {
       const char = text[i];
       dialogueText.textContent += char;
@@ -2627,40 +2813,48 @@ function showDialogue(text, onComplete) {
       i++;
       dialogueTypingTimeout = setTimeout(typeChar, state.reducedMotion ? 0 : 26);
     } else {
-      const advanceHandler = () => {
-        window.removeEventListener('keydown', keyAdvance);
-        dialogueBox.removeEventListener('click', advanceHandler);
-        dialogueBox.setAttribute('hidden', '');
-        if (onComplete) onComplete();
-      };
-      const keyAdvance = (e) => {
-        if (e.code === 'Space' || e.code === 'Enter') {
-          advanceHandler();
-        }
-      };
-      window.addEventListener('keydown', keyAdvance, { once: true });
-      dialogueBox.addEventListener('click', advanceHandler, { once: true });
+      isDialogueTyping = false;
     }
   }
 
   typeChar();
 }
 
-// --- 22. EASTER EGG ---
-const KONAMI_SEQUENCE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
-let konamiIndex = 0;
+if (dialogueBox) {
+  dialogueBox.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    skipOrAdvanceDialogue();
+  };
+}
 
-window.addEventListener('keydown', (e) => {
-  if (e.code === KONAMI_SEQUENCE[konamiIndex] || e.key.toLowerCase() === KONAMI_SEQUENCE[konamiIndex].toLowerCase()) {
-    konamiIndex++;
-    if (konamiIndex === KONAMI_SEQUENCE.length) {
-      konamiIndex = 0;
-      triggerEasterEgg();
-    }
-  } else {
-    konamiIndex = 0;
+// --- 22. KONAMI CODE & EASTER EGG (ACCESSIBLE ON TITLE & LOCKED SCREENS) ---
+const KONAMI_CODE_SEQUENCE = ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'RIGHT', 'LEFT', 'RIGHT', 'B', 'A'];
+let konamiInputBuffer = [];
+let konamiBufferTimer = null;
+
+function recordKonamiStep(key) {
+  clearTimeout(konamiBufferTimer);
+  konamiBufferTimer = setTimeout(() => {
+    konamiInputBuffer = [];
+  }, 4500);
+
+  konamiInputBuffer.push(key);
+  if (konamiInputBuffer.length > KONAMI_CODE_SEQUENCE.length) {
+    konamiInputBuffer.shift();
   }
-});
+
+  if (konamiInputBuffer.length === KONAMI_CODE_SEQUENCE.length) {
+    const isKonamiMatch = KONAMI_CODE_SEQUENCE.every((val, idx) => val === konamiInputBuffer[idx]);
+    if (isKonamiMatch) {
+      konamiInputBuffer = [];
+      clearTimeout(konamiBufferTimer);
+      triggerEasterEgg();
+      return true;
+    }
+  }
+  return false;
+}
 
 function triggerEasterEgg() {
   sessionMemory.easterEggFound = true;
@@ -2775,6 +2969,8 @@ let gpCheatUpPrev = false;
 let gpCheatDownPrev = false;
 let gpCheatLeftPrev = false;
 let gpCheatRightPrev = false;
+let gpButtonLBPreviouslyPressed = false;
+let gpButtonRBPreviouslyPressed = false;
 
 function pollGamepad() {
   const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -2811,12 +3007,20 @@ function pollGamepad() {
   const isLeft = dpadLeft || stickLeft;
   const isRight = dpadRight || stickRight;
 
-  // Edge-triggered Cheat Code detection on D-Pad and Stick (press down ONLY)
+  // Edge-triggered Cheat Code detection on D-Pad and Stick (press down ONLY on LOCKED screen)
   if (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden')) {
     if (isUp && !gpCheatUpPrev) recordCheatDirection('UP');
     if (isDown && !gpCheatDownPrev) recordCheatDirection('DOWN');
     if (isLeft && !gpCheatLeftPrev) recordCheatDirection('LEFT');
     if (isRight && !gpCheatRightPrev) recordCheatDirection('RIGHT');
+  }
+
+  // Edge-triggered Konami Code detection (accessible on LOCKED and TITLE / Color Picker screen)
+  if (state.currentScreen === 'LOCKED' || state.currentScreen === 'TITLE') {
+    if (isUp && !gpCheatUpPrev) recordKonamiStep('UP');
+    if (isDown && !gpCheatDownPrev) recordKonamiStep('DOWN');
+    if (isLeft && !gpCheatLeftPrev) recordKonamiStep('LEFT');
+    if (isRight && !gpCheatRightPrev) recordKonamiStep('RIGHT');
   }
 
   gpCheatUpPrev = isUp;
@@ -2836,9 +3040,19 @@ function pollGamepad() {
   const btnB = !!(gp.buttons[1] && gp.buttons[1].pressed);
   const btnX = !!(gp.buttons[2] && gp.buttons[2].pressed);
   const btnY = !!(gp.buttons[3] && gp.buttons[3].pressed);
+  const btnLB = !!(gp.buttons[4] && gp.buttons[4].pressed);
+  const btnRB = !!(gp.buttons[5] && gp.buttons[5].pressed);
   const btnStart = !!(gp.buttons[9] && gp.buttons[9].pressed);
 
-  if (moveX !== 0 || moveY !== 0 || btnA || btnB || btnX || btnY || btnStart) {
+  // Dev Mode Bumpers (LB / RB to skip pages)
+  if (state.devModeActive) {
+    if (btnLB && !gpButtonLBPreviouslyPressed) devPrevPage();
+    if (btnRB && !gpButtonRBPreviouslyPressed) devNextPage();
+  }
+  gpButtonLBPreviouslyPressed = btnLB;
+  gpButtonRBPreviouslyPressed = btnRB;
+
+  if (moveX !== 0 || moveY !== 0 || btnA || btnB || btnX || btnY || btnLB || btnRB || btnStart) {
     setInputMode('controller');
   }
 
@@ -2847,8 +3061,15 @@ function pollGamepad() {
     handleDirectionInput(moveY, moveX);
   }
 
-  // Button A (Hold vs Tap on locked screen)
+  // Button A (Hold vs Tap on locked screen, with Konami check)
   if (btnA && !gpButtonAPreviouslyPressed) {
+    if (state.currentScreen === 'LOCKED' || state.currentScreen === 'TITLE') {
+      const isKonami = recordKonamiStep('A');
+      if (isKonami) {
+        gpButtonAPreviouslyPressed = btnA;
+        return; // Easter egg triggered! Don't execute normal button A action
+      }
+    }
     handleActionInput();
   }
   if (!btnA && gpButtonAPreviouslyPressed) {
@@ -2857,6 +3078,9 @@ function pollGamepad() {
   gpButtonAPreviouslyPressed = btnA;
 
   if (btnB && !gpButtonBPreviouslyPressed) {
+    if (state.currentScreen === 'LOCKED' || state.currentScreen === 'TITLE') {
+      recordKonamiStep('B');
+    }
     handleCancelInput();
   }
   gpButtonBPreviouslyPressed = btnB;
@@ -3129,10 +3353,9 @@ function handleXButtonInput() {
 }
 
 function handleYButtonInput() {
-  // On Locked Screen -> shortcut to open Dev Terminal!
-  if (state.currentScreen === 'LOCKED') {
-    if (btnSecretPeeker) btnSecretPeeker.click();
-    return;
+  // Shortcut to open Dev Terminal / Controls!
+  if (state.currentScreen === 'LOCKED' || state.devModeActive) {
+    toggleDevModal();
   }
 }
 
@@ -3170,6 +3393,15 @@ let activeKeyInterval = null;
 let currentKeyDir = null;
 
 window.addEventListener('keydown', (e) => {
+  // Dialogue box active -> skip typewriter or advance!
+  if (dialogueBox && !dialogueBox.hasAttribute('hidden')) {
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') {
+      e.preventDefault();
+      skipOrAdvanceDialogue();
+      return;
+    }
+  }
+
   // Hotkey 'm' / 'M' toggles audio unless typing in an active text input
   if ((e.code === 'KeyM' || e.key === 'm' || e.key === 'M') && document.activeElement !== secretPasscodeInput) {
     e.preventDefault();
@@ -3177,19 +3409,55 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Cheat sequence listener on keyboard (press only, no auto-repeat)
-  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
-    const isUp = e.code === 'ArrowUp' || e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === 'w' || e.key === 'W';
-    const isDown = e.code === 'ArrowDown' || e.key === 'ArrowDown' || e.code === 'KeyS' || e.key === 's' || e.key === 'S';
-    const isLeft = e.code === 'ArrowLeft' || e.key === 'ArrowLeft' || e.code === 'KeyA' || e.key === 'a' || e.key === 'A';
-    const isRight = e.code === 'ArrowRight' || e.key === 'ArrowRight' || e.code === 'KeyD' || e.key === 'd' || e.key === 'D';
+  // Dev Mode shortcuts: '[' (prev page), ']' (next page), '\' or '~' (toggle dev modal)
+  if (state.devModeActive && document.activeElement !== secretPasscodeInput) {
+    if (e.code === 'BracketLeft' || e.key === '[') {
+      e.preventDefault();
+      devPrevPage();
+      return;
+    }
+    if (e.code === 'BracketRight' || e.key === ']') {
+      e.preventDefault();
+      devNextPage();
+      return;
+    }
+    if (e.code === 'Backslash' || e.key === '\\' || e.key === '~' || e.code === 'Backquote') {
+      e.preventDefault();
+      toggleDevModal();
+      return;
+    }
+  }
 
-    if (isUp || isDown || isLeft || isRight) {
+  // Konami sequence tracking on keyboard (accessible on LOCKED and TITLE / Color select screen)
+  if (!e.repeat && document.activeElement !== secretPasscodeInput) {
+    let konamiKey = null;
+    if (e.code === 'ArrowUp' || e.key === 'ArrowUp') konamiKey = 'UP';
+    else if (e.code === 'ArrowDown' || e.key === 'ArrowDown') konamiKey = 'DOWN';
+    else if (e.code === 'ArrowLeft' || e.key === 'ArrowLeft') konamiKey = 'LEFT';
+    else if (e.code === 'ArrowRight' || e.key === 'ArrowRight') konamiKey = 'RIGHT';
+    else if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') konamiKey = 'B';
+    else if (e.code === 'KeyA' || e.key === 'a' || e.key === 'A') konamiKey = 'A';
+
+    if (konamiKey && (state.currentScreen === 'LOCKED' || state.currentScreen === 'TITLE')) {
+      const isKonami = recordKonamiStep(konamiKey);
+      if (isKonami) {
+        e.preventDefault();
+        return;
+      }
+    }
+  }
+
+  // Cheat sequence listener on keyboard (press only, no auto-repeat, LOCKED screen ONLY)
+  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
+    let cheatDir = null;
+    if (e.code === 'ArrowUp') cheatDir = 'UP';
+    else if (e.code === 'ArrowDown') cheatDir = 'DOWN';
+    else if (e.code === 'ArrowLeft') cheatDir = 'LEFT';
+    else if (e.code === 'ArrowRight') cheatDir = 'RIGHT';
+
+    if (cheatDir) {
       if (state.currentScreen === 'LOCKED') e.preventDefault();
-      if (isUp) recordCheatDirection('UP');
-      else if (isDown) recordCheatDirection('DOWN');
-      else if (isLeft) recordCheatDirection('LEFT');
-      else if (isRight) recordCheatDirection('RIGHT');
+      recordCheatDirection(cheatDir);
     }
   }
 
