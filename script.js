@@ -3977,6 +3977,222 @@ btnAudioToggle.addEventListener('click', (e) => {
   setAudioMute(!sound.isAmbientMuted);
 });
 
+// --- 24. POLISH PASS: AMBIENT PARTICLES & TAP RIPPLE (§24) ---
+let ambientCanvas = null;
+let ambientCtx = null;
+let ambientParticles = [];
+let ambientAnimId = null;
+
+const SCREEN_PARTICLE_THEMES = {
+  TITLE: {
+    targetCount: 22,
+    colors: ['#ff6b4a', '#00f0ff', '#ffd23f'],
+    minAlpha: 0.15,
+    maxAlpha: 0.32,
+    speedY: -0.35
+  },
+  LOCKED: {
+    targetCount: 16,
+    colors: ['#00f0ff', '#ff6b4a', '#ffd23f'],
+    minAlpha: 0.12,
+    maxAlpha: 0.28,
+    speedY: -0.28
+  },
+  NOTE: {
+    targetCount: 8, // sparser, calm, doesn't compete with handwriting
+    colors: ['#ffd23f', '#f4ecd8', '#e8c547'],
+    minAlpha: 0.08,
+    maxAlpha: 0.18,
+    speedY: -0.18
+  },
+  REVEAL: {
+    targetCount: 22,
+    colors: ['#ff6b4a', '#00f0ff', '#ffd23f'],
+    minAlpha: 0.15,
+    maxAlpha: 0.32,
+    speedY: -0.32
+  },
+  VESSEL: {
+    targetCount: 12,
+    colors: ['#ff6b4a', '#00f0ff', '#ffd23f'],
+    minAlpha: 0.12,
+    maxAlpha: 0.25,
+    speedY: -0.25
+  },
+  ALBUM: {
+    targetCount: 14,
+    colors: ['#ffd23f', '#ff6b4a', '#00f0ff'],
+    minAlpha: 0.12,
+    maxAlpha: 0.26,
+    speedY: -0.25
+  },
+  MATCH: { targetCount: 0 }, // Reserved for match gameplay effects
+  BOSS: { targetCount: 0 }   // Reserved for boss battle effects
+};
+
+function getScreenParticleTheme() {
+  const s = state.currentScreen;
+  const theme = SCREEN_PARTICLE_THEMES[s] || { targetCount: 0 };
+  if (s === 'LOCKED') {
+    // Gently scale density with tier: Tier 4 ~10, Tier 1 ~22
+    const tier = currentLockedTier !== null ? currentLockedTier : 3;
+    const tierCounts = { 4: 10, 3: 14, 2: 18, 1: 22, 0: 24 };
+    return {
+      ...theme,
+      targetCount: tierCounts[tier] || 14
+    };
+  }
+  return theme;
+}
+
+function initAmbientParticles() {
+  ambientCanvas = document.getElementById('ambient-particles-canvas');
+  if (!ambientCanvas) return;
+  ambientCtx = ambientCanvas.getContext('2d');
+  if (!ambientCtx) return;
+
+  const resizeCanvas = () => {
+    if (!ambientCanvas) return;
+    ambientCanvas.width = window.innerWidth;
+    ambientCanvas.height = window.innerHeight;
+  };
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas, { passive: true });
+
+  // Tap / cursor ripple on non-MATCH screens
+  window.addEventListener('pointerdown', (e) => {
+    if (state.currentScreen === 'MATCH' || state.currentScreen === 'BOSS') return;
+    spawnTapRipple(e.clientX, e.clientY);
+  }, { passive: true });
+
+  // Start animation loop
+  if (!ambientAnimId) {
+    ambientAnimId = requestAnimationFrame(updateAmbientParticles);
+  }
+}
+
+function spawnTapRipple(clientX, clientY) {
+  if (!ambientCanvas || !ambientCtx) return;
+  const theme = getScreenParticleTheme();
+  const colors = theme.colors || ['#ff6b4a', '#00f0ff'];
+  const count = 7;
+
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+    const speed = 1.4 + Math.random() * 2.2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    ambientParticles.push({
+      x: clientX,
+      y: clientY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: Math.random() > 0.5 ? 3 : 2,
+      alpha: 0.85,
+      decay: 0.055 + Math.random() * 0.02, // ~15-18 frames (~250-300ms)
+      color,
+      isRipple: true
+    });
+  }
+
+  if (ambientParticles.length > 70) {
+    ambientParticles = ambientParticles.slice(-60);
+  }
+}
+
+function updateAmbientParticles() {
+  if (!ambientCanvas || !ambientCtx) return;
+
+  const width = ambientCanvas.width;
+  const height = ambientCanvas.height;
+  ambientCtx.clearRect(0, 0, width, height);
+
+  const theme = getScreenParticleTheme();
+  const targetCount = theme.targetCount || 0;
+
+  if (document.hidden) {
+    ambientAnimId = requestAnimationFrame(updateAmbientParticles);
+    return;
+  }
+
+  let currentAmbientCount = 0;
+  for (let i = 0; i < ambientParticles.length; i++) {
+    if (!ambientParticles[i].isRipple) currentAmbientCount++;
+  }
+
+  if (currentAmbientCount < targetCount && Math.random() < 0.25) {
+    const colors = theme.colors || ['#ff6b4a', '#00f0ff', '#ffd23f'];
+    ambientParticles.push({
+      x: Math.random() * width,
+      y: height + Math.random() * 20,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (theme.speedY || -0.3) * (0.8 + Math.random() * 0.4),
+      size: Math.random() > 0.6 ? 3 : 2,
+      alpha: 0,
+      baseAlpha: (theme.minAlpha || 0.1) + Math.random() * ((theme.maxAlpha || 0.25) - (theme.minAlpha || 0.1)),
+      fadeIn: true,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      isRipple: false,
+      oscOffset: Math.random() * Math.PI * 2,
+      oscSpeed: 0.015 + Math.random() * 0.02
+    });
+  }
+
+  for (let i = ambientParticles.length - 1; i >= 0; i--) {
+    const p = ambientParticles[i];
+
+    if (p.isRipple) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.94;
+      p.vy *= 0.94;
+      p.alpha -= p.decay;
+
+      if (p.alpha <= 0.01) {
+        ambientParticles.splice(i, 1);
+        continue;
+      }
+    } else {
+      if (targetCount === 0) {
+        p.alpha -= 0.05;
+        if (p.alpha <= 0) {
+          ambientParticles.splice(i, 1);
+          continue;
+        }
+      } else {
+        if (p.fadeIn) {
+          p.alpha += 0.015;
+          if (p.alpha >= p.baseAlpha) {
+            p.alpha = p.baseAlpha;
+            p.fadeIn = false;
+          }
+        }
+      }
+
+      p.oscOffset += p.oscSpeed;
+      p.x += p.vx + Math.sin(p.oscOffset) * 0.2;
+      p.y += p.vy;
+
+      if (p.y < -10 || p.x < -10 || p.x > width + 10) {
+        if (currentAmbientCount > targetCount) {
+          ambientParticles.splice(i, 1);
+          continue;
+        }
+        p.y = height + 5;
+        p.x = Math.random() * width;
+        p.alpha = 0;
+        p.fadeIn = true;
+      }
+    }
+
+    ambientCtx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
+    ambientCtx.fillStyle = p.color;
+    ambientCtx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+  }
+
+  ambientCtx.globalAlpha = 1.0;
+  ambientAnimId = requestAnimationFrame(updateAmbientParticles);
+}
+
 // --- 26. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
   hudTeamPlayer.textContent = CONFIG.playerName;
@@ -3988,6 +4204,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSecretOverride();
   initAlbumScreen();
   updateControllerKeyboardsVisibility();
+  initAmbientParticles();
 
   const heroArt = document.querySelector('.hero-squid-art');
   if (heroArt) {
@@ -4083,6 +4300,8 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentRound = 4;
     showScreen('ALBUM');
     playGrandFinaleMusic();
+  } else if (targetScreen === 'title') {
+    showScreen('TITLE');
   } else if (urlParams.get('unlock') === 'true' || urlParams.get('tier') === '0') {
     showScreen('LOCKED');
     setupLockedInteractions();

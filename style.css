@@ -3050,6 +3050,57 @@ body.controller-mode .terminal-keyboard {
   letter-spacing: 1px;
 }
 
+/* ==========================================================================
+   24. POLISH PASS — AMBIENT PARTICLES & BUTTON HOVER GLOW (§24)
+   ========================================================================== */
 
+/* Ambient Particle & Tap Ripple Canvas */
+.ambient-particles-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 1;
+}
 
+/* Subtle button hover glow (Desktop only - skip entirely on touch) */
+@media (hover: hover) and (pointer: fine) {
+  .btn-game:hover {
+    filter: drop-shadow(0 0 10px rgba(255, 107, 74, 0.5));
+  }
 
+  .btn-note:hover {
+    box-shadow: 0 0 14px rgba(255, 210, 63, 0.4);
+    border-color: rgba(255, 210, 63, 0.6);
+  }
+
+  .btn-audio:hover {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.45);
+  }
+
+  .btn-vessel-choice:hover {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+  }
+
+  .btn-terminal:hover {
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+  }
+
+  .btn-terminal-cancel:hover {
+    box-shadow: 0 0 8px rgba(255, 107, 74, 0.4);
+  }
+
+  .btn-album:hover {
+    box-shadow: 0 0 12px rgba(255, 210, 63, 0.45);
+  }
+
+  .album-tab-btn:hover {
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.35);
+  }
+
+  .dev-bar-btn:hover {
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.45);
+  }
+}
