@@ -966,6 +966,7 @@ function triggerTVStaticCut(callback, durationMs = 220) {
 // --- 9. BIRTHDAY GATING COUNTDOWN & ESCALATING TIERS (§16) ---
 // Calibrated from current date (September 3, 2026) to midnight September 8, 2026 (~5 days)
 function getCountdownTier(timeLeft) {
+  if (timeLeft <= 0) return 0;
   if (timeLeft > 3 * 86400000) return 4;   // > 3 days (Sept 3–5)
   if (timeLeft > 1.5 * 86400000) return 3; // 1.5–3 days (Sept 5–6)
   if (timeLeft > 4 * 3600000) return 2;    // 4–36 hours (Sept 7)
@@ -975,23 +976,29 @@ function getCountdownTier(timeLeft) {
 const TIER_CONFIG = {
   4: {
     tierNumber: 4,
-    subhead: 'TRANSMISSION DETECTED • 5 DAYS OUT',
+    subhead: 'TRANSMISSION ENCRYPTED • T-5 DAYS',
     headline: 'SPLATFEST LOCKED',
-    teaser: 'A special birthday event is brewing. T-minus 5 days!',
-    subtext: 'Return when the clock strikes zero!',
-    lockTag: 'STANDBY FOR DECRYPTION',
-    blurPx: 14,
+    teaser: 'Ink supplies are being ordered. Splatfest arena is locked down tight.',
+    subtext: 'Check back as the countdown progresses!',
+    lockTag: 'DECRYPTION: 15% COMPLETE',
+    blurPx: 20,
+    peekBlur: 13,
+    pixelGrid: 18,
+    pixelOpacity: 0.85,
     ambientGain: 0.05,
-    earlyLine: "* You're a few days early, Zaman! The ink hasn't even finished brewing yet."
+    earlyLine: "* You're 5 days early, Zaman! The ink hasn't even finished brewing yet."
   },
   3: {
     tierNumber: 3,
-    subhead: 'RESTRICTED TRANSMISSION • HALFWAY',
+    subhead: 'DECRYPTION PROGRESSING • T-3 DAYS',
     headline: 'SPLATFEST BREWING',
-    teaser: 'Ink supplies almost loaded! The arena gates are humming.',
-    subtext: 'Get your gear polished and ready!',
-    lockTag: 'DECRYPTION IN PROGRESS',
-    blurPx: 11,
+    teaser: 'Arena lights are turning on! Weapon calibrators running diagnostic checks.',
+    subtext: 'Gear is being polished! The signal is getting clearer.',
+    lockTag: 'DECRYPTION: 50% COMPLETE',
+    blurPx: 14,
+    peekBlur: 9,
+    pixelGrid: 12,
+    pixelOpacity: 0.70,
     ambientGain: 0.09,
     earlyLine: "* We're halfway there! The tournament arena is starting to warm up."
   },
@@ -999,47 +1006,94 @@ const TIER_CONFIG = {
     tierNumber: 2,
     subhead: 'HIGH PRIORITY BROADCAST • TOMORROW',
     headline: 'ARENA PRIMING',
-    teaser: 'Tomorrow is the big day! Final calibrations underway.',
-    subtext: 'The arena is almost primed for battle!',
-    lockTag: 'DECRYPTION 85% COMPLETE',
-    blurPx: 8.5,
+    teaser: 'Tomorrow is the big day! Turf War battle lines are being painted.',
+    subtext: 'The Splatfest gates are almost ready to unlock!',
+    lockTag: 'DECRYPTION: 85% COMPLETE',
+    blurPx: 9,
+    peekBlur: 5.5,
+    pixelGrid: 6.5,
+    pixelOpacity: 0.55,
     ambientGain: 0.15,
-    earlyLine: "* Getting impatient? Just one more day! Hang tight."
+    earlyLine: "* Tomorrow is the day! Can you feel the arena trembling yet?"
   },
   1: {
     tierNumber: 1,
     subhead: 'MAXIMUM HYPE • IMMINENT UNLOCK',
     headline: 'GATES UNLOCKING',
-    teaser: 'Splatfest gates opening in minutes! Count down with us!',
-    subtext: 'FINAL PREPARATIONS UNDERWAY!',
-    lockTag: 'DECRYPTION IMMINENT',
-    blurPx: 7,
+    teaser: 'Splatfest gates opening in mere minutes! Stand by your battle stations!',
+    subtext: 'FINAL PREPARATIONS UNDERWAY! COUNT DOWN WITH US!',
+    lockTag: 'DECRYPTION: 99% COMPLETE',
+    blurPx: 5,
+    peekBlur: 2.5,
+    pixelGrid: 3.5,
+    pixelOpacity: 0.35,
     ambientGain: 0.22,
-    earlyLine: "* You're literally minutes away! Deep breaths... the gates open any minute now!"
+    earlyLine: "* You're literally in the final countdown! Deep breaths... gates open soon!"
+  },
+  0: {
+    tierNumber: 0,
+    subhead: 'SIGNAL DECRYPTED • 100% COMPLETE',
+    headline: 'SPLATFEST GATES OPEN!',
+    teaser: 'The countdown has struck zero! The arena is open!',
+    subtext: 'HAPPY BIRTHDAY, ZAMAN!',
+    lockTag: 'DECRYPTION 100% COMPLETE',
+    blurPx: 0,
+    peekBlur: 0,
+    pixelGrid: 0,
+    pixelOpacity: 0,
+    ambientGain: 0.25,
+    earlyLine: "* GATES UNLOCKED! HAPPY BIRTHDAY, ZAMAN! 🎂🎉"
   }
 };
 
-let lockedDialogueClickCount = 0;
-const LOCKED_CLICK_DIALOGUES = [
-  "* You're a few days early, Zaman! The ink hasn't even finished brewing yet.",
-  "* The countdown doesn't tick faster just because you're clicking it! ...Probably.",
-  "* Checking again so soon? Malachi knew you'd be impatient. :)",
-  "* 🚨 Unauthorized Squid detected! Please step away from the birthday vault.",
-  "* Fun fact: Every time you click this countdown, Malachi smiles somewhere in New York.",
-  "* The rival is currently doing push-ups in preparation for you.",
-  "* Did you try holding down the little cat mascot? Just saying.",
-  "* Error 404: Birthday not arrived yet. Estimated time of party: September 8th!",
-  "* Look at you, eager to see your surprise. Good things come to those who wait!",
-  "* Are you trying to inspect element? There are no cheats in the console, Zaman!",
-  "* Okay, one little hint: Make sure your controller or keyboard is charged.",
-  "* Shhh... can you hear that? That's the sound of an epic Splatfest approaching.",
-  "* Almost there, birthday boy. Hang in there!",
-  "* Forever on Team Zaman67. Now go relax until the timer hits zero! ❤️"
-];
+const lockedTierDialogueCounts = { 4: 0, 3: 0, 2: 0, 1: 0, 0: 0 };
+const TIER_DIALOGUES = {
+  4: [
+    "* You're 5 days early, Zaman! The ink hasn't even finished brewing yet.",
+    "* The countdown doesn't tick faster just because you're clicking it! ...Probably.",
+    "* 🚨 Unauthorized Squid detected! Please step away from the birthday vault.",
+    "* Malachi is still assembling the surprises. Return when the timer drops!",
+    "* Fun fact: Clicking early adds 0 extra seconds, but 100 bonus hype points.",
+    "* Did you try holding down the little cat mascot? Just saying.",
+    "* Error 404: Birthday not arrived yet. Estimated time of party: September 8th!"
+  ],
+  3: [
+    "* We're halfway there! The tournament arena is starting to warm up.",
+    "* Decryption at 50%: The photo is starting to take shape... can you tell what it is yet?",
+    "* Malachi's DJ playlist is getting calibrated. Only 3 days left!",
+    "* The rival Octoling is currently doing push-ups in preparation for you.",
+    "* Are you trying to inspect element? There are no cheats in DevTools, Zaman!",
+    "* Okay, one little hint: Make sure your controller or keyboard is charged.",
+    "* The ink pumps are warming up. Don't worry, your gear is reserved!"
+  ],
+  2: [
+    "* Tomorrow is the big day! Can you feel the arena trembling yet?",
+    "* Just 24 hours left, birthday boy! Hang tight, Agent 67!",
+    "* Decryption at 85%! The photo is almost completely in focus!",
+    "* Shhh... can you hear that? That's the sound of an epic Splatfest approaching.",
+    "* The referee Judd is taking his final nap before the tournament begins tomorrow.",
+    "* Malachi knew you'd be checking today. Almost time!"
+  ],
+  1: [
+    "* You're literally in the final countdown! Deep breaths... gates open soon!",
+    "* Decryption is at 99%! The gates are rattling on their hinges!",
+    "* Watch the clock closely now! When it strikes zero, you're in!",
+    "* Forever on Team Zaman67. Get ready for your birthday match! ❤️",
+    "* 3... 2... almost there! Keep your eyes glued to the timer!",
+    "* FINAL PREPARATIONS ACTIVE! The stage lights just flashed ON!"
+  ],
+  0: [
+    "* 🔓 GATES UNLOCKED! HAPPY BIRTHDAY, ZAMAN! 🎂🎉",
+    "* Decryption 100% complete! Welcome to your Splatfest!"
+  ]
+};
 
-function getNextLockedDialogue() {
-  const line = LOCKED_CLICK_DIALOGUES[lockedDialogueClickCount % LOCKED_CLICK_DIALOGUES.length];
-  lockedDialogueClickCount++;
+function getNextLockedDialogue(tier = currentLockedTier || 4) {
+  const safeTier = (tier in TIER_DIALOGUES) ? tier : 4;
+  const dialogues = TIER_DIALOGUES[safeTier];
+  const count = lockedTierDialogueCounts[safeTier] || 0;
+  const line = dialogues[count % dialogues.length];
+  lockedTierDialogueCounts[safeTier] = count + 1;
   return line;
 }
 
@@ -1049,8 +1103,11 @@ let currentLockedTier = null;
 function initBirthdayGate() {
   const now = Date.now();
   if (now >= UNLOCK_DATE.getTime()) {
-    // On/after unlock: load straight into TITLE as normal, LOCKED never shows again
-    return false;
+    // On/after unlock: load straight into LOCKED and play Tier 0 unlock transition!
+    showScreen('LOCKED');
+    setupLockedInteractions();
+    triggerTier0UnlockTransition();
+    return true;
   }
 
   showScreen('LOCKED');
@@ -1108,7 +1165,7 @@ function updateLockedCountdown(forceTier = null) {
       clearInterval(lockedCountdownInterval);
       lockedCountdownInterval = null;
     }
-    showScreen('TITLE');
+    triggerTier0UnlockTransition();
     return;
   }
 
@@ -1140,20 +1197,85 @@ function applyLockedTier(tier, timeLeft) {
   const elTeaser = document.getElementById('locked-teaser');
   const elSubtext = document.getElementById('locked-subtext');
   const elLockTag = document.getElementById('lock-tag');
+  const photoPeek = document.getElementById('locked-photo-peek');
 
   if (elSubhead) elSubhead.textContent = config.subhead;
   if (elHeadline) elHeadline.textContent = config.headline;
   if (elTeaser) elTeaser.textContent = config.teaser;
   if (elSubtext) elSubtext.textContent = config.subtext;
   if (elLockTag) elLockTag.textContent = config.lockTag;
+  if (photoPeek) photoPeek.dataset.tier = tier;
 
-  // Blur-reveal tease: minimum blur set to 9.5px so photo is always heavily obscured before unlock
-  const smoothBlur = Math.max(9.5, Math.min(22, (timeLeft / (7 * 86400000)) * 13 + 9.5));
-  document.documentElement.style.setProperty('--locked-blur', `${smoothBlur.toFixed(1)}px`);
+  // Set CSS variables for blur and pixelation per tier
+  const root = document.documentElement;
+  root.style.setProperty('--locked-blur', `${config.blurPx}px`);
+  root.style.setProperty('--locked-peek-blur', `${config.peekBlur}px`);
+  root.style.setProperty('--locked-pixel-grid', `${config.pixelGrid}px`);
+  root.style.setProperty('--locked-pixel-opacity', `${config.pixelOpacity}`);
 
   // Ambient audio build: subtle volume map to tier
   if (sound && !sound.isAmbientMuted) {
     sound.setAmbientGain(config.ambientGain);
+  }
+}
+
+let isTier0Transitioning = false;
+
+function triggerTier0UnlockTransition() {
+  if (isTier0Transitioning) return;
+  isTier0Transitioning = true;
+
+  if (lockedCountdownInterval) {
+    clearInterval(lockedCountdownInterval);
+    lockedCountdownInterval = null;
+  }
+
+  // Set countdown digits to 00:00:00:00
+  const setDigit = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val.toString().padStart(2, '0');
+  };
+  setDigit('lock-days', 0);
+  setDigit('lock-hours', 0);
+  setDigit('lock-mins', 0);
+  setDigit('lock-secs', 0);
+
+  // Decryption 100%: 0 blur, 0 pixel grid/opacity
+  const root = document.documentElement;
+  root.style.setProperty('--locked-blur', '0px');
+  root.style.setProperty('--locked-peek-blur', '0px');
+  root.style.setProperty('--locked-pixel-grid', '0px');
+  root.style.setProperty('--locked-pixel-opacity', '0');
+
+  const photoPeek = document.getElementById('locked-photo-peek');
+  if (photoPeek) photoPeek.dataset.tier = '0';
+
+  const overlay = document.getElementById('unlock-tier0-overlay');
+
+  sound.resume();
+  sound.playDeterminationFanfare();
+  triggerHaptic([100, 50, 100, 50, 200]);
+
+  if (overlay) {
+    overlay.removeAttribute('hidden');
+    overlay.classList.remove('fade-out');
+
+    setTimeout(() => {
+      overlay.classList.add('fade-out');
+      setTimeout(() => {
+        overlay.setAttribute('hidden', '');
+        overlay.classList.remove('fade-out');
+        triggerTVStaticCut(() => {
+          showScreen('TITLE');
+          isTier0Transitioning = false;
+        });
+      }, 300);
+    }, 2000);
+  } else {
+    triggerTVStaticCut(() => {
+      showScreen('TITLE');
+      isTier0Transitioning = false;
+    });
   }
 }
 
@@ -1200,7 +1322,7 @@ function setupLockedInteractions() {
   // "You're early" personality: tapping anything gated shows cycling fun lines
   const handleEarlyInteraction = (e) => {
     if (e.target.closest('#btn-audio-toggle') || e.target.closest('#locked-cat-sprite') || e.target.closest('#btn-secret-peeker')) return;
-    showDialogue(getNextLockedDialogue());
+    showDialogue(getNextLockedDialogue(currentLockedTier || 4));
   };
 
   if (countdownCard) countdownCard.onclick = handleEarlyInteraction;
@@ -1448,10 +1570,29 @@ function devPrevPage() {
 function devSetTier(tierNumber) {
   sound.resume();
   sound.playTextBlip();
+  if (tierNumber === 0) {
+    devSimulatedDiff = 0;
+    devSimulatedStartTime = Date.now();
+    if (state.currentScreen !== 'LOCKED') {
+      devJumpToScreen('LOCKED');
+    }
+    triggerTier0UnlockTransition();
+    if (terminalStatus) {
+      terminalStatus.style.color = 'var(--ink-yellow)';
+      terminalStatus.textContent = '* TIER 0 UNLOCKED! GATES ARE OPENING!';
+    }
+    return;
+  }
+  isTier0Transitioning = false;
+  const overlay = document.getElementById('unlock-tier0-overlay');
+  if (overlay) {
+    overlay.setAttribute('hidden', '');
+    overlay.classList.remove('fade-out');
+  }
   if (state.currentScreen !== 'LOCKED') {
     devJumpToScreen('LOCKED');
   }
-  if (!lockedCountdownInterval && tierNumber !== 0) {
+  if (!lockedCountdownInterval) {
     lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
   }
   updateLockedCountdown(tierNumber);
@@ -1464,6 +1605,12 @@ function devSetTier(tierNumber) {
 function devResetTime() {
   sound.resume();
   sound.playTextBlip();
+  isTier0Transitioning = false;
+  const overlay = document.getElementById('unlock-tier0-overlay');
+  if (overlay) {
+    overlay.setAttribute('hidden', '');
+    overlay.classList.remove('fade-out');
+  }
   devSimulatedDiff = null;
   devSimulatedStartTime = null;
   if (state.currentScreen !== 'LOCKED') {
@@ -3854,13 +4001,17 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('LOCKED');
     setupLockedInteractions();
     const tierParam = parseInt(urlParams.get('tier') || '3', 10);
-    updateLockedCountdown(tierParam);
-    if (urlParams.get('dialogue') === 'early') {
-      const config = TIER_CONFIG[tierParam] || TIER_CONFIG[3];
-      showDialogue(config.earlyLine);
-    }
-    if (!lockedCountdownInterval) {
-      lockedCountdownInterval = setInterval(() => updateLockedCountdown(tierParam), 1000);
+    if (tierParam === 0) {
+      triggerTier0UnlockTransition();
+    } else {
+      updateLockedCountdown(tierParam);
+      if (urlParams.get('dialogue') === 'early') {
+        const config = TIER_CONFIG[tierParam] || TIER_CONFIG[3];
+        showDialogue(config.earlyLine);
+      }
+      if (!lockedCountdownInterval) {
+        lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
+      }
     }
     if (urlParams.get('secret') === 'open') {
       modalSecretOverride.removeAttribute('hidden');
@@ -3932,12 +4083,11 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentRound = 4;
     showScreen('ALBUM');
     playGrandFinaleMusic();
-  } else if (urlParams.get('unlock') === 'true') {
-    showScreen('TITLE');
+  } else if (urlParams.get('unlock') === 'true' || urlParams.get('tier') === '0') {
+    showScreen('LOCKED');
+    setupLockedInteractions();
+    triggerTier0UnlockTransition();
   } else {
-    const isLocked = initBirthdayGate();
-    if (!isLocked) {
-      showScreen('TITLE');
-    }
+    initBirthdayGate();
   }
 });

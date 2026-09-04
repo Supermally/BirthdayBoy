@@ -1233,25 +1233,32 @@ html, body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(var(--locked-blur, 12px)) brightness(0.65) saturate(1.4);
-  transition: filter 300ms ease;
+  filter: blur(var(--locked-blur, 16px)) brightness(var(--locked-brightness, 0.68)) saturate(1.4);
+  transition: filter 300ms ease, transform 300ms ease;
 }
 
-.locked-photo-peek.peek-active .locked-peek-img {
-  filter: blur(9px) contrast(170%) brightness(0.8) saturate(1.4) !important;
-  transform: scale(1.05);
-}
-
-.locked-photo-peek.peek-active::after {
+/* Dynamic pixel grid overlay that scales with tier */
+.locked-photo-peek::after {
   content: '';
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(18, 8, 31, 0.75) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(18, 8, 31, 0.75) 2px, transparent 2px);
-  background-size: 10px 10px;
+    linear-gradient(rgba(18, 8, 31, var(--locked-pixel-opacity, 0.75)) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(18, 8, 31, var(--locked-pixel-opacity, 0.75)) 2px, transparent 2px);
+  background-size: var(--locked-pixel-grid, 12px) var(--locked-pixel-grid, 12px);
   pointer-events: none;
   z-index: 4;
+  transition: background-size 300ms ease, opacity 300ms ease;
+}
+
+.locked-photo-peek.peek-active .locked-peek-img {
+  filter: blur(var(--locked-peek-blur, 7px)) contrast(165%) brightness(0.85) saturate(1.4) !important;
+  transform: scale(1.05);
+}
+
+.locked-photo-peek.peek-active::after {
+  background-size: calc(var(--locked-pixel-grid, 12px) * 0.7) calc(var(--locked-pixel-grid, 12px) * 0.7);
+  opacity: 0.85;
 }
 
 .locked-photo-peek.peek-active .locked-peek-overlay {
@@ -2959,6 +2966,90 @@ body.controller-mode .terminal-keyboard {
   border-color: #ffffff;
   box-shadow: 0 0 10px rgba(255, 210, 63, 0.8);
 }
+
+/* Tier 0 Unlock Overlay Transition */
+.unlock-tier0-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10006;
+  background: radial-gradient(circle at center, rgba(30, 10, 50, 0.96) 0%, rgba(5, 2, 10, 0.99) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: unlockFadeIn 280ms ease forwards;
+}
+
+.unlock-tier0-overlay[hidden] {
+  display: none !important;
+}
+
+.unlock-tier0-overlay.fade-out {
+  animation: unlockFadeOut 300ms ease forwards;
+}
+
+@keyframes unlockFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes unlockFadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.05); }
+}
+
+.unlock-overlay-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 520px;
+}
+
+.unlock-glitch-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--ink-teal, #00f0ff);
+  letter-spacing: 2px;
+  border: 2px solid var(--ink-teal, #00f0ff);
+  padding: 7px 16px;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+  animation: cheatPulse 1s infinite alternate;
+}
+
+.unlock-overlay-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(20px, 5vw, 32px);
+  color: #ffd23f;
+  text-shadow: 0 0 20px rgba(255, 210, 63, 0.9), 4px 4px 0 #000;
+  margin: 4px 0;
+  letter-spacing: 1px;
+}
+
+.unlock-overlay-sub {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--ink-teal, #00f0ff);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+  margin: 0;
+}
+
+.unlock-overlay-greeting {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  color: var(--ink-coral, #ff6b4a);
+  text-shadow: 0 0 16px rgba(255, 107, 74, 0.8), 2px 2px 0 #000;
+  margin-top: 6px;
+}
+
+.unlock-overlay-note {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #a49cb5;
+  letter-spacing: 1px;
+}
+
 
 
 
