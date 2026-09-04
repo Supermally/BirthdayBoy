@@ -8,7 +8,11 @@
 // Hardcoded target date/time (§16): September 8, 2026, 12:00 AM Eastern Time (EDT / UTC-4)
 const UNLOCK_DATE = new Date('2026-09-08T00:00:00-04:00');
 
-const MUSIC_PLAYLIST = [];
+const MUSIC_PLAYLIST = [
+  { title: 'Born2Run - Penelope Scott', src: './music/born2run.mp3' },
+  { title: 'Hammerhead - Penelope Scott', src: './music/hammerhead.mp3' },
+  { title: 'Rät - Penelope Scott', src: './music/rat.mp3' },
+];
 
 const GRAND_FINALE_TRACK = {
   title: "7 O'Clock",
@@ -19,8 +23,8 @@ let finaleAudio = null;
 function playGrandFinaleMusic() {
   sound.stopBattleMusic();
   sound.stopAmbientSynth();
-  if (playlist && playlist.audio) {
-    playlist.audio.pause();
+  if (playlist) {
+    playlist.stop();
   }
 
   if (!finaleAudio) {
@@ -600,7 +604,11 @@ class MusicPlaylistManager {
       }
       return;
     }
-    this.loadTrack(0);
+    if (!this.audio.src) {
+      this.loadTrack(0);
+    } else if (!this.soundEngine.isAmbientMuted && this.audio.paused) {
+      this.audio.play().catch(() => {});
+    }
   }
 
   loadTrack(index) {
@@ -611,19 +619,23 @@ class MusicPlaylistManager {
 
     this.audio.src = track.src;
     if (this.tickerText) {
-      this.tickerText.textContent = track.title;
+      this.tickerText.textContent = `♪ ${track.title}`;
     }
     if (this.tickerEl) this.tickerEl.removeAttribute('hidden');
 
     if (!this.soundEngine.isAmbientMuted) {
-      this.audio.play().catch(() => {
-        this.soundEngine.startAmbientSynth();
+      this.audio.play().catch((e) => {
+        console.log('Audio autoplay waiting for user interaction:', e);
       });
     }
   }
 
   playNext() {
-    this.loadTrack(this.currentIndex + 1);
+    this.loadTrack((this.currentIndex + 1) % MUSIC_PLAYLIST.length);
+  }
+
+  stop() {
+    this.audio.pause();
   }
 
   updateMuteState(isMuted) {
@@ -2496,6 +2508,7 @@ if (titleSquidHero) {
 
 function triggerTitleToMatch(skipVessel = false) {
   sound.resume();
+  if (playlist) playlist.start();
 
   // Route through Deltarune Vessel Maker if not yet created!
   if (!skipVessel && !sessionMemory.vesselCreated) {
