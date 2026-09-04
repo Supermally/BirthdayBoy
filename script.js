@@ -4372,8 +4372,27 @@ window.addEventListener('keydown', (e) => {
     setInputMode('keyboard');
   }
 
+  // Check if user is typing in ANY input or text-entry field
+  const activeEl = document.activeElement;
+  const targetEl = e.target;
+  const isTyping = Boolean(
+    (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) ||
+    (targetEl && (targetEl.tagName === 'INPUT' || targetEl.tagName === 'TEXTAREA' || targetEl.isContentEditable)) ||
+    (modalSecretOverride && !modalSecretOverride.hasAttribute('hidden') && !state.devModeActive) ||
+    (state.currentScreen === 'VESSEL' && vesselStepName && !vesselStepName.hasAttribute('hidden'))
+  );
+
+  // Auto-focus the active input if keypress happened while modal or naming screen is open
+  if (isTyping && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (modalSecretOverride && !modalSecretOverride.hasAttribute('hidden') && !state.devModeActive && secretPasscodeInput && activeEl !== secretPasscodeInput) {
+      secretPasscodeInput.focus();
+    } else if (state.currentScreen === 'VESSEL' && vesselStepName && !vesselStepName.hasAttribute('hidden') && vesselNameInput && activeEl !== vesselNameInput) {
+      vesselNameInput.focus();
+    }
+  }
+
   // Dialogue box active -> skip typewriter or advance!
-  if (dialogueBox && !dialogueBox.hasAttribute('hidden')) {
+  if (!isTyping && dialogueBox && !dialogueBox.hasAttribute('hidden')) {
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') {
       e.preventDefault();
       skipOrAdvanceDialogue();
@@ -4410,15 +4429,8 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Hotkey 'm' / 'M' toggles audio unless typing in an active text input
-  if ((e.code === 'KeyM' || e.key === 'm' || e.key === 'M') && document.activeElement !== secretPasscodeInput) {
-    e.preventDefault();
-    setAudioMute(!sound.isAmbientMuted);
-    return;
-  }
-
   // Dev Mode shortcuts: '[' (prev page), ']' (next page), '\' or '~' (toggle dev modal)
-  if (state.devModeActive && document.activeElement !== secretPasscodeInput) {
+  if (!isTyping && state.devModeActive) {
     if (e.code === 'BracketLeft' || e.key === '[') {
       e.preventDefault();
       devPrevPage();
@@ -4437,7 +4449,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Konami sequence tracking on keyboard (accessible on LOCKED and TITLE / Color select screen)
-  if (!e.repeat && document.activeElement !== secretPasscodeInput) {
+  if (!isTyping && !e.repeat) {
     let konamiKey = null;
     if (e.code === 'ArrowUp' || e.key === 'ArrowUp') konamiKey = 'UP';
     else if (e.code === 'ArrowDown' || e.key === 'ArrowDown') konamiKey = 'DOWN';
@@ -4456,7 +4468,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Cheat sequence listener on keyboard (press only, no auto-repeat, LOCKED screen ONLY)
-  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
+  if (!isTyping && !e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
     let cheatDir = null;
     if (e.code === 'ArrowUp') cheatDir = 'UP';
     else if (e.code === 'ArrowDown') cheatDir = 'DOWN';
@@ -4678,6 +4690,7 @@ btnAudioToggle.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
   setAudioMute(!sound.isAmbientMuted);
+  btnAudioToggle.blur();
 });
 
 // --- 24. POLISH PASS: AMBIENT PARTICLES & TAP RIPPLE (§24) ---
