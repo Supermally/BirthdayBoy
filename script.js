@@ -1089,7 +1089,17 @@ const VALID_DEV_PASSCODES = [
   'SPLATFEST-MIDNIGHT-0908',
   'SEPTEMBER-EIGHTH-LOVE',
   'CENTRAL-PARK-OCTOBER',
-  'MALACHI67-SUPERDEV'
+  'MALACHI67-SUPERDEV',
+  'OCTOCHAMPION2026',
+  'DEV',
+  '67',
+  'OCTO',
+  'MALACHI',
+  'MALLY',
+  'ZAMAN',
+  '0908',
+  'OCTO2026',
+  'SUPERDEV'
 ];
 
 const TERMINAL_KEYS = [
@@ -1146,7 +1156,7 @@ function pressTerminalKey(key) {
   } else if (key === 'OK') {
     submitSecretOverride();
   } else {
-    if (secretPasscodeInput.value.length < 24) {
+    if (secretPasscodeInput.value.length < 64) {
       secretPasscodeInput.value += key;
     }
   }
@@ -1154,17 +1164,28 @@ function pressTerminalKey(key) {
 
 // Controller Cheat Code Sequence: Up, Up, Down, Right, Left
 let devCheatSequence = [];
+let devCheatTimer = null;
 const DEV_TARGET_CHEAT = ['UP', 'UP', 'DOWN', 'RIGHT', 'LEFT'];
 
 function recordCheatDirection(dir) {
+  sound.resume();
+  sound.playTextBlip();
+
+  clearTimeout(devCheatTimer);
+  devCheatTimer = setTimeout(() => {
+    devCheatSequence = [];
+  }, 3500);
+
   devCheatSequence.push(dir);
   if (devCheatSequence.length > DEV_TARGET_CHEAT.length) {
     devCheatSequence.shift();
   }
+
   if (devCheatSequence.length === DEV_TARGET_CHEAT.length) {
     const match = devCheatSequence.every((val, idx) => val === DEV_TARGET_CHEAT[idx]);
     if (match) {
       devCheatSequence = [];
+      clearTimeout(devCheatTimer);
       triggerDevCheatUnlock();
     }
   }
@@ -1177,12 +1198,12 @@ function triggerDevCheatUnlock() {
   modalSecretOverride.removeAttribute('hidden');
   secretPasscodeInput.value = 'OCTO-CHAMPION-2026';
   terminalStatus.style.color = 'var(--ink-teal)';
-  terminalStatus.textContent = '* CHEAT CODE ACTIVATED: [UP UP DOWN RIGHT LEFT]! Welcome, Operator Malachi!';
+  terminalStatus.textContent = '* CHEAT CODE ACTIVATED: [UP UP DOWN RIGHT LEFT]!\n* Operator Malachi Authenticated! Unlocking...';
 
   setTimeout(() => {
     modalSecretOverride.setAttribute('hidden', '');
     showScreen('TITLE');
-  }, 1200);
+  }, 1100);
 }
 
 function initSecretOverride() {
@@ -1241,9 +1262,15 @@ function initSecretOverride() {
 
 function submitSecretOverride() {
   sound.resume();
-  const inputCode = (secretPasscodeInput.value || '').trim().toUpperCase();
+  const rawInput = (secretPasscodeInput.value || '').trim().toUpperCase();
+  const cleanInput = rawInput.replace(/[^A-Z0-9]/g, '');
 
-  if (VALID_DEV_PASSCODES.includes(inputCode)) {
+  const isMatch = VALID_DEV_PASSCODES.some(code => {
+    const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return rawInput === code.toUpperCase() || (cleanInput !== '' && cleanInput === cleanCode);
+  });
+
+  if (isMatch) {
     terminalStatus.style.color = 'var(--ink-teal)';
     terminalStatus.textContent = '* DEV OVERRIDE CONFIRMED. Welcome, Operator Malachi!\n* Unlocking Splatfest for early inspection...';
     sound.playDeterminationFanfare();
@@ -1252,7 +1279,7 @@ function submitSecretOverride() {
     setTimeout(() => {
       modalSecretOverride.setAttribute('hidden', '');
       showScreen('TITLE');
-    }, 1300);
+    }, 1100);
     return;
   }
 
@@ -2585,6 +2612,15 @@ function updateAlbumButtonFocus() {
   });
 }
 
+let gpDpadUpPrev = false;
+let gpDpadDownPrev = false;
+let gpDpadLeftPrev = false;
+let gpDpadRightPrev = false;
+let gpStickUpPrev = false;
+let gpStickDownPrev = false;
+let gpStickLeftPrev = false;
+let gpStickRightPrev = false;
+
 function pollGamepad() {
   const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
   for (let i = 0; i < gamepads.length; i++) {
@@ -2600,6 +2636,34 @@ function pollGamepad() {
     const dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
     const dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
     const dpadRight = gp.buttons[15] && gp.buttons[15].pressed;
+
+    // Edge-triggered Cheat Code detection on D-Pad and Stick (press down ONLY)
+    if (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden')) {
+      if (dpadUp && !gpDpadUpPrev) recordCheatDirection('UP');
+      if (dpadDown && !gpDpadDownPrev) recordCheatDirection('DOWN');
+      if (dpadLeft && !gpDpadLeftPrev) recordCheatDirection('LEFT');
+      if (dpadRight && !gpDpadRightPrev) recordCheatDirection('RIGHT');
+
+      const stickUp = axisY < -0.65;
+      const stickDown = axisY > 0.65;
+      const stickLeft = axisX < -0.65;
+      const stickRight = axisX > 0.65;
+
+      if (stickUp && !gpStickUpPrev) recordCheatDirection('UP');
+      if (stickDown && !gpStickDownPrev) recordCheatDirection('DOWN');
+      if (stickLeft && !gpStickLeftPrev) recordCheatDirection('LEFT');
+      if (stickRight && !gpStickRightPrev) recordCheatDirection('RIGHT');
+
+      gpStickUpPrev = stickUp;
+      gpStickDownPrev = stickDown;
+      gpStickLeftPrev = stickLeft;
+      gpStickRightPrev = stickRight;
+    }
+
+    gpDpadUpPrev = !!dpadUp;
+    gpDpadDownPrev = !!dpadDown;
+    gpDpadLeftPrev = !!dpadLeft;
+    gpDpadRightPrev = !!dpadRight;
 
     let moveX = 0;
     let moveY = 0;
@@ -2658,12 +2722,6 @@ function pollGamepad() {
 }
 
 function handleDirectionInput(dr, dc) {
-  // Record cheat code direction (Up, Up, Down, Right, Left)
-  if (dr === -1) recordCheatDirection('UP');
-  else if (dr === 1) recordCheatDirection('DOWN');
-  else if (dc === 1) recordCheatDirection('RIGHT');
-  else if (dc === -1) recordCheatDirection('LEFT');
-
   // 1. Modal Override active -> navigate terminal pixel keyboard!
   if (!modalSecretOverride.hasAttribute('hidden')) {
     if (dc === 1) selectedTerminalKeyIndex = (selectedTerminalKeyIndex + 1) % TERMINAL_KEYS.length;
@@ -2922,6 +2980,10 @@ function handleYButtonInput() {
 }
 
 function handleStartButtonInput() {
+  if (!modalSecretOverride.hasAttribute('hidden')) {
+    submitSecretOverride();
+    return;
+  }
   if (state.currentScreen === 'VESSEL' && !vesselStepName.hasAttribute('hidden')) {
     finishVesselNaming();
   } else if (state.currentScreen === 'TITLE') {
@@ -2951,8 +3013,8 @@ let activeKeyInterval = null;
 let currentKeyDir = null;
 
 window.addEventListener('keydown', (e) => {
-  // Cheat sequence listener on keyboard
-  if (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden')) {
+  // Cheat sequence listener on keyboard (press only, no auto-repeat)
+  if (!e.repeat && (state.currentScreen === 'LOCKED' || !modalSecretOverride.hasAttribute('hidden'))) {
     if (e.code === 'ArrowUp') recordCheatDirection('UP');
     else if (e.code === 'ArrowDown') recordCheatDirection('DOWN');
     else if (e.code === 'ArrowRight') recordCheatDirection('RIGHT');
