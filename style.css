@@ -2947,5 +2947,18 @@ body.controller-mode .terminal-keyboard {
   transform: translateY(1px);
 }
 
+.dev-btn-reset {
+  background: rgba(255, 210, 63, 0.16);
+  border-color: #ffd23f;
+  color: #ffd23f;
+}
+
+.dev-btn-reset:hover, .dev-btn-reset.gamepad-focused {
+  background: #ffd23f;
+  color: #000000;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 210, 63, 0.8);
+}
+
 
 

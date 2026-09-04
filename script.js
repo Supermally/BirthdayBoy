@@ -1082,16 +1082,25 @@ function initBirthdayGate() {
   return true;
 }
 
+let devSimulatedDiff = null;
+let devSimulatedStartTime = null;
+
 function updateLockedCountdown(forceTier = null) {
   const now = Date.now();
   let diff = UNLOCK_DATE.getTime() - now;
 
   if (forceTier !== null && forceTier !== undefined) {
-    if (forceTier === 4) diff = 4 * 86400000 + 7 * 3600000;
-    else if (forceTier === 3) diff = 2 * 86400000 + 5 * 3600000;
-    else if (forceTier === 2) diff = 18 * 3600000 + 30 * 60000;
-    else if (forceTier === 1) diff = 45 * 60000 + 30000;
-    else if (forceTier === 0) diff = 0;
+    if (forceTier === 4) devSimulatedDiff = 4 * 86400000 + 7 * 3600000 + 14 * 60000 + 20000;
+    else if (forceTier === 3) devSimulatedDiff = 2 * 86400000 + 5 * 3600000 + 30 * 60000 + 15000;
+    else if (forceTier === 2) devSimulatedDiff = 18 * 3600000 + 45 * 60000 + 30000;
+    else if (forceTier === 1) devSimulatedDiff = 42 * 60000 + 45000;
+    else if (forceTier === 0) devSimulatedDiff = 0;
+    devSimulatedStartTime = now;
+  }
+
+  if (devSimulatedDiff !== null && devSimulatedStartTime !== null) {
+    const elapsed = now - devSimulatedStartTime;
+    diff = Math.max(0, devSimulatedDiff - elapsed);
   }
 
   if (diff <= 0) {
@@ -1118,7 +1127,7 @@ function updateLockedCountdown(forceTier = null) {
   setDigit('lock-mins', mins);
   setDigit('lock-secs', secs);
 
-  const tier = (forceTier !== null && forceTier !== undefined) ? forceTier : getCountdownTier(diff);
+  const tier = getCountdownTier(diff);
   applyLockedTier(tier, diff);
 }
 
@@ -1442,10 +1451,31 @@ function devSetTier(tierNumber) {
   if (state.currentScreen !== 'LOCKED') {
     devJumpToScreen('LOCKED');
   }
+  if (!lockedCountdownInterval && tierNumber !== 0) {
+    lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
+  }
   updateLockedCountdown(tierNumber);
   if (terminalStatus) {
     terminalStatus.style.color = 'var(--ink-teal)';
-    terminalStatus.textContent = `* COUNTDOWN FORCED TO TIER ${tierNumber}!`;
+    terminalStatus.textContent = `* SIMULATING TIER ${tierNumber}! (Time changed & counting down)`;
+  }
+}
+
+function devResetTime() {
+  sound.resume();
+  sound.playTextBlip();
+  devSimulatedDiff = null;
+  devSimulatedStartTime = null;
+  if (state.currentScreen !== 'LOCKED') {
+    devJumpToScreen('LOCKED');
+  }
+  if (!lockedCountdownInterval) {
+    lockedCountdownInterval = setInterval(updateLockedCountdown, 1000);
+  }
+  updateLockedCountdown();
+  if (terminalStatus) {
+    terminalStatus.style.color = 'var(--gold)';
+    terminalStatus.textContent = '* RESTORED REAL LIVE COUNTDOWN TIME!';
   }
 }
 
@@ -1621,6 +1651,8 @@ function initSecretOverride() {
         devJumpToScreen(btn.dataset.devScreen);
       } else if (btn.dataset.devTier !== undefined) {
         devSetTier(parseInt(btn.dataset.devTier, 10));
+      } else if (btn.dataset.devResetTime !== undefined) {
+        devResetTime();
       } else if (btn.dataset.devRound !== undefined) {
         devSetRound(parseInt(btn.dataset.devRound, 10));
       } else if (btn.dataset.devBosshp !== undefined) {
