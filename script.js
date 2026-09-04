@@ -2027,6 +2027,56 @@ let invadersScore = 0;
 let invadersRemaining = 12;
 let lastPelletFireTime = 0;
 
+let invadersDialogueTypingTimeout = null;
+let isInvadersDialogueTyping = false;
+let currentInvadersDialogueFullText = '';
+
+const INVADERS_FAKEOUT_TEXT = "* Did you relly think I'd make it that easy for you. I hope you didn't get bit!";
+
+function skipInvadersDialogue() {
+  if (!isInvadersDialogueTyping) return;
+  clearTimeout(invadersDialogueTypingTimeout);
+  isInvadersDialogueTyping = false;
+  const pEl = document.getElementById('invaders-dialogue-p') || document.getElementById('invaders-dialogue-text');
+  if (pEl) {
+    pEl.textContent = currentInvadersDialogueFullText;
+  }
+  const cursorEl = document.getElementById('invaders-deltarune-cursor');
+  if (cursorEl) cursorEl.removeAttribute('hidden');
+  sound.playTextBlip();
+}
+
+function typeInvadersDialogue(text, onComplete) {
+  clearTimeout(invadersDialogueTypingTimeout);
+  currentInvadersDialogueFullText = text;
+  isInvadersDialogueTyping = true;
+
+  const pEl = document.getElementById('invaders-dialogue-p') || document.getElementById('invaders-dialogue-text');
+  const cursorEl = document.getElementById('invaders-deltarune-cursor');
+  if (cursorEl) cursorEl.setAttribute('hidden', '');
+  if (pEl) pEl.textContent = '';
+
+  let i = 0;
+  function typeChar() {
+    if (!isInvadersDialogueTyping) return;
+    if (i < text.length) {
+      const char = text[i];
+      if (pEl) pEl.textContent += char;
+      if (char !== ' ' && char !== '\n') {
+        sound.playTextBlip();
+      }
+      i++;
+      invadersDialogueTypingTimeout = setTimeout(typeChar, state.reducedMotion ? 0 : 26);
+    } else {
+      isInvadersDialogueTyping = false;
+      if (cursorEl) cursorEl.removeAttribute('hidden');
+      if (onComplete) onComplete();
+    }
+  }
+
+  typeChar();
+}
+
 function setupSpaceInvadersFakeout() {
   if (btnBypassPeeker) {
     const spriteEl = btnBypassPeeker.querySelector('.peeker-mosquito-sprite');
@@ -2042,6 +2092,15 @@ function setupSpaceInvadersFakeout() {
   const portraitEl = document.getElementById('deltarune-speaker-portrait');
   if (portraitEl && (typeof portraitEl.hasChildNodes !== 'function' || !portraitEl.hasChildNodes())) {
     portraitEl.innerHTML = generateSVGFromMatrix(MOSQUITO_SPRITE_PIXELS, '#374151', MOSQUITO_PALETTE);
+  }
+
+  const deltaruneCard = document.getElementById('deltarune-invaders-card');
+  if (deltaruneCard) {
+    deltaruneCard.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      skipInvadersDialogue();
+    };
   }
 
   if (btnInvadersCancel) {
@@ -2142,6 +2201,8 @@ function openSpaceInvadersFakeout() {
 
 function closeSpaceInvadersFakeout() {
   invadersActive = false;
+  isInvadersDialogueTyping = false;
+  clearTimeout(invadersDialogueTypingTimeout);
   if (invadersAnimationId) {
     cancelAnimationFrame(invadersAnimationId);
     invadersAnimationId = null;
@@ -2193,6 +2254,7 @@ function triggerInvadersFakeoutReveal() {
   triggerHaptic([60, 40, 100]);
   if (invadersRevealScreen) {
     invadersRevealScreen.removeAttribute('hidden');
+    typeInvadersDialogue(INVADERS_FAKEOUT_TEXT);
   }
 }
 
@@ -4052,7 +4114,11 @@ function handleActionInput() {
   // Modal Space Invaders Fakeout active
   if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
     if (invadersRevealScreen && !invadersRevealScreen.hasAttribute('hidden')) {
-      if (btnInvadersAcceptFakeout) btnInvadersAcceptFakeout.click();
+      if (isInvadersDialogueTyping) {
+        skipInvadersDialogue();
+      } else if (btnInvadersAcceptFakeout) {
+        btnInvadersAcceptFakeout.click();
+      }
     } else {
       fireBloodPellet();
     }
@@ -4256,7 +4322,11 @@ window.addEventListener('keydown', (e) => {
     if (invadersRevealScreen && !invadersRevealScreen.hasAttribute('hidden')) {
       if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
         e.preventDefault();
-        if (btnInvadersAcceptFakeout) btnInvadersAcceptFakeout.click();
+        if (isInvadersDialogueTyping) {
+          skipInvadersDialogue();
+        } else if (btnInvadersAcceptFakeout) {
+          btnInvadersAcceptFakeout.click();
+        }
       }
       return;
     }

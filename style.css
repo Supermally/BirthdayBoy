@@ -2763,10 +2763,11 @@ body.controller-mode .vessel-keyboard {
 
 .deltarune-dialogue-body {
   position: relative;
-  min-height: 80px;
+  min-height: 68px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  cursor: pointer;
 }
 
 .deltarune-dialogue-lines {
@@ -2778,10 +2779,11 @@ body.controller-mode .vessel-keyboard {
 
 .deltarune-dialogue-p {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7.5px;
-  line-height: 1.65;
+  font-size: 8.5px;
+  line-height: 1.75;
   color: #ffffff;
   margin: 0;
+  white-space: pre-line;
 }
 
 .deltarune-dialogue-gold {
