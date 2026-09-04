@@ -1277,19 +1277,31 @@ function renderLockedPeek(isPeekActive = false) {
 
   const tier = currentLockedTier !== null && currentLockedTier !== undefined ? currentLockedTier : 3;
 
+  // Center-crop to 1:1 aspect ratio so subjects are framed in the center
+  const nw = img.naturalWidth || 1024;
+  const nh = img.naturalHeight || 768;
+  let sx = 0, sy = 0, sw = nw, sh = nh;
+  if (nw > nh) {
+    sw = nh;
+    sx = Math.round((nw - nh) / 2);
+  } else if (nh > nw) {
+    sh = nw;
+    sy = Math.round((nh - nw) / 2);
+  }
+
   if (tier === 0) {
     ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
     return;
   }
 
   // Authentic retro pixelation: calculate pixel grid resolution
   let pixelGrid = 20;
-  if (tier === 4) pixelGrid = isPeekActive ? 28 : 14;
-  else if (tier === 3) pixelGrid = isPeekActive ? 40 : 22;
-  else if (tier === 2) pixelGrid = isPeekActive ? 56 : 32;
-  else if (tier === 1) pixelGrid = isPeekActive ? 80 : 48;
+  if (tier === 4) pixelGrid = isPeekActive ? 32 : 14;
+  else if (tier === 3) pixelGrid = isPeekActive ? 48 : 20;
+  else if (tier === 2) pixelGrid = isPeekActive ? 64 : 28;
+  else if (tier === 1) pixelGrid = isPeekActive ? 96 : 40;
 
   let buffer = null;
   if (typeof document !== 'undefined' && document.createElement) {
@@ -1299,7 +1311,7 @@ function renderLockedPeek(isPeekActive = false) {
     const bctx = buffer.getContext ? buffer.getContext('2d') : null;
     if (bctx) {
       bctx.imageSmoothingEnabled = true;
-      bctx.drawImage(img, 0, 0, pixelGrid, pixelGrid);
+      bctx.drawImage(img, sx, sy, sw, sh, 0, 0, pixelGrid, pixelGrid);
     }
   }
 
@@ -1308,7 +1320,7 @@ function renderLockedPeek(isPeekActive = false) {
   if (buffer) {
     ctx.drawImage(buffer, 0, 0, w, h);
   } else {
-    ctx.drawImage(img, 0, 0, w, h);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
   }
 }
 
@@ -1390,18 +1402,25 @@ function setupLockedInteractions() {
     catSprite.dataset.peekBound = 'true';
     let peekHoldTimeout = null;
 
-    const startPeek = () => {
+    const startPeek = (e) => {
+      if (e && e.pointerId && catSprite.setPointerCapture) {
+        try { catSprite.setPointerCapture(e.pointerId); } catch (_) {}
+      }
       catSprite.classList.add('holding');
+      if (peekHoldTimeout) clearTimeout(peekHoldTimeout);
       peekHoldTimeout = setTimeout(() => {
         sound.resume();
         sound.playTextBlip();
         triggerHaptic(20);
         photoPeek.classList.add('peek-active');
         renderLockedPeek(true);
-      }, 200);
+      }, 150);
     };
 
-    const endPeek = () => {
+    const endPeek = (e) => {
+      if (e && e.pointerId && catSprite.releasePointerCapture) {
+        try { catSprite.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
       catSprite.classList.remove('holding');
       if (peekHoldTimeout) {
         clearTimeout(peekHoldTimeout);
@@ -1415,6 +1434,8 @@ function setupLockedInteractions() {
     catSprite.addEventListener('pointerup', endPeek);
     catSprite.addEventListener('pointerleave', endPeek);
     catSprite.addEventListener('pointercancel', endPeek);
+    catSprite.addEventListener('contextmenu', (e) => e.preventDefault());
+    catSprite.addEventListener('dragstart', (e) => e.preventDefault());
   }
 
   // "You're early" personality: tapping anything gated shows cycling fun lines
@@ -4134,6 +4155,7 @@ function handleActionInput() {
       if (cat && peek) {
         cat.classList.add('holding');
         peek.classList.add('peek-active');
+        renderLockedPeek(true);
         sound.playTextBlip();
       }
     } else if (lockedFocusIndex === 1) {
@@ -4218,6 +4240,7 @@ function handleActionRelease() {
     const peek = document.getElementById('locked-photo-peek');
     if (cat) cat.classList.remove('holding');
     if (peek) peek.classList.remove('peek-active');
+    renderLockedPeek(false);
   }
 }
 
