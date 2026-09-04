@@ -2088,9 +2088,9 @@ html, body {
 
 /* On-Screen Pixel Keyboard (§17 Controller Support) */
 .vessel-keyboard {
+  display: none;
   width: 100%;
   max-width: 360px;
-  display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
   margin: 6px auto;
@@ -2098,6 +2098,10 @@ html, body {
   border: 3px solid #ffffff;
   padding: 8px;
   box-shadow: 0 0 16px rgba(0, 0, 0, 0.85);
+}
+
+body.controller-mode .vessel-keyboard {
+  display: grid;
 }
 
 .vkey-btn {
@@ -2696,13 +2700,17 @@ html, body {
 
 /* On-Screen Pixel Keyboard for Terminal */
 .terminal-keyboard {
-  display: grid;
+  display: none;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
   background: #000000;
   border: 2px solid var(--ink-teal);
   padding: 6px;
   margin: 6px 0;
+}
+
+body.controller-mode .terminal-keyboard {
+  display: grid;
 }
 
 .tkey-btn {

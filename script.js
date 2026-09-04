@@ -936,6 +936,7 @@ const VIRTUAL_KEYBOARD_LAYOUT = [
 function showScreen(screenKey) {
   state.currentScreen = screenKey;
   updateControlHint();
+  updateControllerKeyboardsVisibility();
   Object.keys(screens).forEach((key) => {
     if (screens[key]) {
       if (key === screenKey.toLowerCase()) {
@@ -1518,7 +1519,10 @@ function initSecretOverride() {
       terminalStatus.textContent = '';
       selectedTerminalKeyIndex = 0;
       updateTerminalKeySelection();
-      secretPasscodeInput.focus();
+      updateControllerKeyboardsVisibility();
+      if (currentInputMode === 'keyboard') {
+        secretPasscodeInput.focus();
+      }
     };
   }
 
@@ -1535,6 +1539,9 @@ function initSecretOverride() {
   }
 
   if (secretPasscodeInput) {
+    secretPasscodeInput.onfocus = () => {
+      setInputMode('keyboard');
+    };
     secretPasscodeInput.onkeydown = (e) => {
       if (e.key === 'Enter') {
         submitSecretOverride();
@@ -1750,11 +1757,16 @@ function initVesselMaker() {
     finishVesselNaming();
   };
 
-  vesselNameInput.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      finishVesselNaming();
-    }
-  };
+  if (vesselNameInput) {
+    vesselNameInput.onfocus = () => {
+      setInputMode('keyboard');
+    };
+    vesselNameInput.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        finishVesselNaming();
+      }
+    };
+  }
 
   btnVesselAccept.onclick = () => {
     sound.resume();
@@ -1818,6 +1830,34 @@ function setInputMode(mode) {
   if (currentInputMode === mode) return;
   currentInputMode = mode;
   updateControlHint();
+  updateControllerKeyboardsVisibility();
+}
+
+function updateControllerKeyboardsVisibility() {
+  const isCtrl = currentInputMode === 'controller';
+  if (document.body) {
+    document.body.classList.toggle('controller-mode', isCtrl);
+  }
+  const vKb = document.getElementById('vessel-keyboard');
+  if (vKb) {
+    if (isCtrl) {
+      vKb.removeAttribute('hidden');
+      vKb.style.display = 'grid';
+    } else {
+      vKb.setAttribute('hidden', '');
+      vKb.style.display = 'none';
+    }
+  }
+  const tKb = document.getElementById('terminal-keyboard');
+  if (tKb) {
+    if (isCtrl) {
+      tKb.removeAttribute('hidden');
+      tKb.style.display = 'grid';
+    } else {
+      tKb.setAttribute('hidden', '');
+      tKb.style.display = 'none';
+    }
+  }
 }
 
 function updateControlHint() {
@@ -3052,7 +3092,18 @@ function pollGamepad() {
   gpButtonLBPreviouslyPressed = btnLB;
   gpButtonRBPreviouslyPressed = btnRB;
 
-  if (moveX !== 0 || moveY !== 0 || btnA || btnB || btnX || btnY || btnLB || btnRB || btnStart) {
+  const hasControllerInput = (
+    moveX !== 0 || moveY !== 0 || 
+    btnA || btnB || btnX || btnY || 
+    btnLB || btnRB || btnStart ||
+    (gp.buttons[6] && gp.buttons[6].pressed) || 
+    (gp.buttons[7] && gp.buttons[7].pressed) || 
+    (gp.buttons[8] && gp.buttons[8].pressed) || 
+    (gp.buttons[10] && gp.buttons[10].pressed) || 
+    (gp.buttons[11] && gp.buttons[11].pressed)
+  );
+
+  if (hasControllerInput) {
     setInputMode('controller');
   }
 
@@ -3371,8 +3422,9 @@ function handleStartButtonInput() {
   }
 }
 
-window.addEventListener('gamepadconnected', () => {
-  setInputMode('controller');
+window.addEventListener('gamepadconnected', (e) => {
+  console.log('Gamepad connected:', e.gamepad ? e.gamepad.id : 'Gamepad');
+  // NOTE: On-screen keyboards remain hidden until an actual controller input is detected in pollGamepad()!
 });
 
 window.addEventListener('gamepaddisconnected', () => {
@@ -3393,6 +3445,11 @@ let activeKeyInterval = null;
 let currentKeyDir = null;
 
 window.addEventListener('keydown', (e) => {
+  // Physical keyboard key detected -> switch mode to keyboard and hide controller on-screen keyboards
+  if (currentInputMode !== 'keyboard') {
+    setInputMode('keyboard');
+  }
+
   // Dialogue box active -> skip typewriter or advance!
   if (dialogueBox && !dialogueBox.hasAttribute('hidden')) {
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') {
@@ -3674,6 +3731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initVesselMaker();
   initSecretOverride();
   initAlbumScreen();
+  updateControllerKeyboardsVisibility();
 
   const heroArt = document.querySelector('.hero-squid-art');
   if (heroArt) {
