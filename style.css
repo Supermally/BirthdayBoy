@@ -2914,14 +2914,14 @@ body.controller-mode .vessel-keyboard {
 .polaroid-scrapbook-card {
   position: relative;
   background: #ffffff;
-  padding: 14px 14px 24px 14px;
+  padding: 14px 14px 32px 14px;
   border-radius: 4px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 4px 4px 0 rgba(18, 8, 31, 0.8);
   transform: rotate(var(--rotation, 0deg));
   transition: transform 200ms ease, box-shadow 200ms ease;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
 .polaroid-scrapbook-card:hover {
@@ -3074,14 +3074,14 @@ body.controller-mode .vessel-keyboard {
 .scrapbook-video-card {
   position: relative;
   background: #ffffff;
-  padding: 14px 14px 24px 14px;
+  padding: 14px 14px 32px 14px;
   border-radius: 4px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 4px 4px 0 rgba(18, 8, 31, 0.8);
   transform: rotate(var(--rotation, 0deg));
   transition: transform 200ms ease, box-shadow 200ms ease;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
 .scrapbook-video-card:hover,

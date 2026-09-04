@@ -94,11 +94,12 @@ const ROUNDS_CONFIG = {
     rivalSpeed: 380,
     huntProb: 0.20,
     noteSeal: 'ROUND 1 CLEAR',
-    noteText: `Happy Birthday! 🎉
+    noteText: `* STAGE 1 CLEAR! 🎉
 
-Qualifiers complete! You proved your turf inking instincts are top tier.
+* (The scent of fresh ink fills the air.)
+* Your turf-inking instincts are completely top tier!
 
-Think you can defend the territory when the rival increases their ink output?`,
+* Think you can hold your turf when the rival cranks up their ink output?`,
     buttonText: 'ENTER ROUND 2: CLASH!',
     nextAction: 'round_2',
   },
@@ -107,11 +108,12 @@ Think you can defend the territory when the rival increases their ink output?`,
     rivalSpeed: 320,
     huntProb: 0.28,
     noteSeal: 'ROUND 2 CLEAR',
-    noteText: `INCREDIBLE! 🌟
+    noteText: `* INCREDIBLE VICTORY! 🌟
 
-You held the line through the Semi-Finals! The rival was fast, but your turf coverage took the stage.
+* You held the line through the Semi-Finals!
+* (Seeing your territory expand fills you with DETERMINATION.)
 
-Ready for the Championship Finals?`,
+* Ready for the Championship Finals?`,
     buttonText: 'ENTER ROUND 3: FINALS!',
     nextAction: 'round_3',
   },
@@ -120,11 +122,13 @@ Ready for the Championship Finals?`,
     rivalSpeed: 270,
     huntProb: 0.35,
     noteSeal: 'CHAMPION',
-    noteText: `CHAMPIONSHIP VICTORY! 🏆
+    noteText: `* CHAMPIONSHIP VICTORY! 🏆
 
-You conquered all three rounds! But wait...
+* You conquered all three rounds!
+* But wait... The rival drops their Splattershot and refuses to accept defeat!
+* They're mutating into a MEGA RIVAL!
 
-The rival drops their Splattershot and refuses to accept defeat! They're mutating into a MEGA RIVAL!`,
+* (A strange, powerful aura approaches...)`,
     buttonText: 'CONFRONT MEGA RIVAL!',
     nextAction: 'boss_gate',
   },
@@ -144,7 +148,7 @@ And most of all, I love you.
 Happy birthday, Zaman. ❤️
 
 — Malachi`,
-    buttonText: 'OUR NEXT ADVENTURE ❤️',
+    buttonText: 'PHOTO ARCHIVES 📷',
     nextAction: 'forward',
   }
 };
@@ -1052,7 +1056,7 @@ const TIER_CONFIG = {
     pixelGrid: 6.5,
     pixelOpacity: 0.55,
     ambientGain: 0.15,
-    earlyLine: "* Tomorrow is the day! Can you feel the arena trembling yet?"
+    earlyLine: "* Tomorrow is the day! Can you feel the arena shaking yet?"
   },
   1: {
     tierNumber: 1,
@@ -1090,33 +1094,32 @@ const TIER_DIALOGUES = {
     "* You're 5 days early, Zaman! The ink hasn't even finished brewing yet.",
     "* The countdown doesn't tick faster just because you're clicking it! ...Probably.",
     "* 🚨 Unauthorized Squid detected! Please step away from the birthday vault.",
-    "* Malachi is still assembling the surprises. Return when the timer drops!",
-    "* Fun fact: Clicking early adds 0 extra seconds, but 100 bonus hype points.",
+    "* I am still assembling the surprises. Return when the timer drops!",
+    "* Fun fact: Clicking early adds 0 extra seconds, but 100 bonus points.",
     "* Did you try holding down the little cat mascot? Just saying.",
     "* Error 404: Birthday not arrived yet. Estimated time of party: September 8th!"
   ],
   3: [
     "* We're halfway there! The tournament arena is starting to warm up.",
     "* Decryption at 50%: The photo is starting to take shape... can you tell what it is yet?",
-    "* Malachi's DJ playlist is getting calibrated. Only 3 days left!",
+    "* The playlist is getting calibrated. Only 3 days left!",
     "* The rival Octoling is currently doing push-ups in preparation for you.",
     "* Are you trying to inspect element? There are no cheats in DevTools, Zaman!",
     "* Okay, one little hint: Make sure your controller or keyboard is charged.",
-    "* The ink pumps are warming up. Don't worry, your gear is reserved!"
+    "* The ink pumps are warming up. Don't worry, your gear is ready!"
   ],
   2: [
-    "* Tomorrow is the big day! Can you feel the arena trembling yet?",
+    "* Tomorrow is the day! Can you feel the arena shaking yet?",
     "* Just 24 hours left, birthday boy! Hang tight, Agent 67!",
     "* Decryption at 85%! The photo is almost completely in focus!",
-    "* Shhh... can you hear that? That's the sound of an epic Splatfest approaching.",
-    "* The referee Judd is taking his final nap before the tournament begins tomorrow.",
-    "* Malachi knew you'd be checking today. Almost time!"
+    "* Shhh... can you hear that? Wait... That might be a mosquito.",
+    "* Judd is taking his final nap before the tournament begins tomorrow.",
+    "* I knew you'd check today. Almost time!"
   ],
   1: [
     "* You're literally in the final countdown! Deep breaths... gates open soon!",
     "* Decryption is at 99%! The gates are rattling on their hinges!",
     "* Watch the clock closely now! When it strikes zero, you're in!",
-    "* Forever on Team Zaman67. Get ready for your birthday match! ❤️",
     "* 3... 2... almost there! Keep your eyes glued to the timer!",
     "* FINAL PREPARATIONS ACTIVE! The stage lights just flashed ON!"
   ],
@@ -1880,6 +1883,7 @@ function initSecretOverride() {
       sound.resume();
       sound.playTextBlip();
       modalSecretOverride.setAttribute('hidden', '');
+      showDialogue("* Back to the countdown you go! See you on the 8th, Zaman! ❤️");
     };
   }
 
@@ -1905,7 +1909,7 @@ function initSecretOverride() {
       sound.resume();
       sound.playTextBlip();
       modalFakeout67.setAttribute('hidden', '');
-      showDialogue("* Back to the countdown you go! See you on September 8th, Zaman! ❤️");
+      showDialogue("* Back to the countdown you go! See you on the 8th, Zaman! ❤️");
     };
   }
 
@@ -1980,9 +1984,9 @@ function submitSecretOverride() {
   } else if (wrongOverrideAttempts === 2) {
     terminalStatus.textContent = "* 🚨 ACCESS DENIED: Clearance level: BIRTHDAY BOY (Restricted).";
   } else if (wrongOverrideAttempts === 3) {
-    terminalStatus.textContent = "* Error 404: Birthday Patience Not Found. Guessing won't rush Sept 8th!";
+    terminalStatus.textContent = "* Error 404: Birthday Patience Not Found. Guessing won't rush the 8th!";
   } else if (wrongOverrideAttempts === 4) {
-    terminalStatus.textContent = "* DENIED! Did you really think Malachi made the code that obvious? 😏";
+    terminalStatus.textContent = "* DENIED! Did you really think I made the code that obvious?  Unless...";
   } else {
     // Attempt 5+: The Ultimate Fake-out!
     terminalStatus.style.color = 'var(--gold)';
@@ -2003,7 +2007,7 @@ function triggerFakeoutMinigame() {
   gridFakeout67.innerHTML = '';
   let inkedCount = 0;
   const targetTiles = 16;
-  const sillyTexts = ['67!', 'LOL', '>_<', 'NOPE', 'WAIT!', 'XD', 'NUH', '67'];
+  const sillyTexts = ['67!', 'LOL', '>_<', 'NOPE', ':3', 'XD', 'HEHE', '67'];
 
   for (let i = 0; i < targetTiles; i++) {
     const tile = document.createElement('button');
@@ -2023,7 +2027,7 @@ function triggerFakeoutMinigame() {
         if (inkedCount >= targetTiles) {
           setTimeout(() => {
             modalFakeout67.setAttribute('hidden', '');
-            showDialogue("* Okay, okay! You inked the 67 penalty tiles!\n* But no skipping the line: See you on September 8th, Zaman! ❤️");
+            showDialogue("* Okay, okay! You inked the 67 penalty tiles!\n* But no skipping the line: See you on the 8th, Zaman! ❤️");
           }, 600);
         }
       }
@@ -2127,7 +2131,7 @@ function setupSpaceInvadersFakeout() {
   if (btnInvadersCancel) {
     btnInvadersCancel.onclick = () => {
       closeSpaceInvadersFakeout();
-      showDialogue("* Bypass aborted! Security measures hold strong until September 8th! ❤️");
+      showDialogue("* Bypass aborted! Security measures hold strong until the 8th! ❤️");
     };
   }
 
@@ -2136,7 +2140,7 @@ function setupSpaceInvadersFakeout() {
       sound.resume();
       sound.playTextBlip();
       closeSpaceInvadersFakeout();
-      showDialogue("* Malachi: \"Nice mosquito piloting though, Zaman! See you September 8th!\" ❤️");
+      showDialogue("* Malachi: \"Nice mosquito piloting though, Zaman! See you on the 8th!\" ❤️");
     };
   }
 
@@ -2770,7 +2774,7 @@ function finishVesselNaming() {
 * ...
 * Your squid is named Zaman67.
 * And your sprite is the default Cat-Squid.
-* (Though you may still choose your ink color. We aren't monsters.)`;
+* (Though you may still choose your ink color. What am I a monster?)`;
 
   typeVesselRejectionText(rejectionSpeech, () => {
     btnVesselAccept.removeAttribute('hidden');
