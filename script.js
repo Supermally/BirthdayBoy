@@ -226,7 +226,30 @@ const VESSEL_PHANTOM_PIXELS = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
-function generateSVGFromMatrix(matrix, primaryColor) {
+const MOSQUITO_SPRITE_PIXELS = [
+  [0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 1, 3, 0, 0, 0, 0, 0],
+  [4, 4, 0, 1, 1, 1, 1, 1, 0, 4, 4, 0],
+  [4, 4, 4, 1, 1, 1, 1, 1, 4, 4, 4, 0],
+  [0, 4, 4, 0, 2, 2, 2, 0, 4, 4, 0, 0],
+  [0, 0, 1, 2, 1, 2, 1, 2, 1, 0, 0, 0],
+  [0, 1, 0, 2, 2, 2, 2, 2, 0, 1, 0, 0],
+  [1, 0, 0, 0, 2, 1, 2, 0, 0, 0, 1, 0],
+  [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+];
+
+const MOSQUITO_PALETTE = {
+  1: '#374151',
+  2: '#ef4444',
+  3: '#ff0055',
+  4: '#00f0ff',
+  5: '#ffd23f'
+};
+
+function generateSVGFromMatrix(matrix, primaryColor, customPalette = null) {
   const size = 12;
   let rects = '';
   for (let r = 0; r < size; r++) {
@@ -234,8 +257,12 @@ function generateSVGFromMatrix(matrix, primaryColor) {
       const val = matrix[r][c];
       if (val !== 0) {
         let fill = primaryColor;
-        if (val === 2) fill = '#ffffff';
-        if (val === 3) fill = 'var(--void)';
+        if (customPalette && customPalette[val]) {
+          fill = customPalette[val];
+        } else {
+          if (val === 2) fill = '#ffffff';
+          if (val === 3) fill = 'var(--void)';
+        }
         rects += `<rect x="${c}" y="${r}" width="1" height="1" fill="${fill}" />`;
       }
     }
@@ -1228,6 +1255,61 @@ function applyLockedTier(tier, timeLeft) {
   if (sound && !sound.isAmbientMuted) {
     sound.setAmbientGain(config.ambientGain);
   }
+
+  const isPeekActive = photoPeek && photoPeek.classList.contains('peek-active');
+  renderLockedPeek(isPeekActive);
+}
+
+function renderLockedPeek(isPeekActive = false) {
+  const canvas = document.getElementById('locked-peek-canvas');
+  const img = document.getElementById('locked-peek-img');
+  if (!canvas || !img) return;
+  const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+  if (!ctx) return;
+
+  const w = canvas.width || 160;
+  const h = canvas.height || 160;
+
+  if (!img.complete || !img.naturalWidth) {
+    img.onload = () => renderLockedPeek(isPeekActive);
+    return;
+  }
+
+  const tier = currentLockedTier !== null && currentLockedTier !== undefined ? currentLockedTier : 3;
+
+  if (tier === 0) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return;
+  }
+
+  // Authentic retro pixelation: calculate pixel grid resolution
+  let pixelGrid = 20;
+  if (tier === 4) pixelGrid = isPeekActive ? 28 : 14;
+  else if (tier === 3) pixelGrid = isPeekActive ? 40 : 22;
+  else if (tier === 2) pixelGrid = isPeekActive ? 56 : 32;
+  else if (tier === 1) pixelGrid = isPeekActive ? 80 : 48;
+
+  let buffer = null;
+  if (typeof document !== 'undefined' && document.createElement) {
+    buffer = document.createElement('canvas');
+    buffer.width = pixelGrid;
+    buffer.height = pixelGrid;
+    const bctx = buffer.getContext ? buffer.getContext('2d') : null;
+    if (bctx) {
+      bctx.imageSmoothingEnabled = true;
+      bctx.drawImage(img, 0, 0, pixelGrid, pixelGrid);
+    }
+  }
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.imageSmoothingEnabled = false;
+  if (buffer) {
+    ctx.drawImage(buffer, 0, 0, w, h);
+  } else {
+    ctx.drawImage(img, 0, 0, w, h);
+  }
 }
 
 let isTier0Transitioning = false;
@@ -1260,6 +1342,7 @@ function triggerTier0UnlockTransition() {
 
   const photoPeek = document.getElementById('locked-photo-peek');
   if (photoPeek) photoPeek.dataset.tier = '0';
+  renderLockedPeek(false);
 
   const overlay = document.getElementById('unlock-tier0-overlay');
 
@@ -1300,6 +1383,8 @@ function setupLockedInteractions() {
     catArt.innerHTML = generateSVGFromMatrix(PLAYER_SPRITE_PIXELS, 'var(--ink-coral)');
   }
 
+  renderLockedPeek(false);
+
   // Hidden peek interaction: holding/tapping cat sprite for ~1-2s temporarily sharpens blur
   if (catSprite && photoPeek && !catSprite.dataset.peekBound) {
     catSprite.dataset.peekBound = 'true';
@@ -1312,6 +1397,7 @@ function setupLockedInteractions() {
         sound.playTextBlip();
         triggerHaptic(20);
         photoPeek.classList.add('peek-active');
+        renderLockedPeek(true);
       }, 200);
     };
 
@@ -1322,6 +1408,7 @@ function setupLockedInteractions() {
         peekHoldTimeout = null;
       }
       photoPeek.classList.remove('peek-active');
+      renderLockedPeek(false);
     };
 
     catSprite.addEventListener('pointerdown', startPeek);
@@ -1942,10 +2029,19 @@ let lastPelletFireTime = 0;
 
 function setupSpaceInvadersFakeout() {
   if (btnBypassPeeker) {
+    const spriteEl = btnBypassPeeker.querySelector('.peeker-mosquito-sprite');
+    if (spriteEl && (typeof spriteEl.hasChildNodes !== 'function' || !spriteEl.hasChildNodes())) {
+      spriteEl.innerHTML = generateSVGFromMatrix(MOSQUITO_SPRITE_PIXELS, '#374151', MOSQUITO_PALETTE);
+    }
     btnBypassPeeker.onclick = (e) => {
       e.stopPropagation();
       openSpaceInvadersFakeout();
     };
+  }
+
+  const portraitEl = document.getElementById('deltarune-speaker-portrait');
+  if (portraitEl && (typeof portraitEl.hasChildNodes !== 'function' || !portraitEl.hasChildNodes())) {
+    portraitEl.innerHTML = generateSVGFromMatrix(MOSQUITO_SPRITE_PIXELS, '#374151', MOSQUITO_PALETTE);
   }
 
   if (btnInvadersCancel) {
@@ -2101,102 +2197,37 @@ function triggerInvadersFakeoutReveal() {
 }
 
 function drawMosquitoSprite(ctx, x, y) {
-  const wingCycle = Math.sin(Date.now() * 0.045);
+  const pixelSize = 2.4;
+  const matrix = MOSQUITO_SPRITE_PIXELS;
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const startX = Math.round(x - (cols * pixelSize) / 2);
+  const startY = Math.round(y - (rows * pixelSize) / 2);
+  const wingFlap = (Math.floor(Date.now() / 90) % 2) === 0;
+
   ctx.save();
-  ctx.translate(x, y);
-
-  // 1. Spindly articulated mosquito legs
-  ctx.strokeStyle = '#6b7280';
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = 'round';
-  // Left legs
-  ctx.beginPath();
-  ctx.moveTo(-4, 0); ctx.lineTo(-14, 4); ctx.lineTo(-18, 12);
-  ctx.moveTo(-4, 3); ctx.lineTo(-16, 7); ctx.lineTo(-20, 16);
-  ctx.moveTo(-4, -3); ctx.lineTo(-12, -4); ctx.lineTo(-15, 2);
-  // Right legs
-  ctx.moveTo(4, 0); ctx.lineTo(14, 4); ctx.lineTo(18, 12);
-  ctx.moveTo(4, 3); ctx.lineTo(16, 7); ctx.lineTo(20, 16);
-  ctx.moveTo(4, -3); ctx.lineTo(12, -4); ctx.lineTo(15, 2);
-  ctx.stroke();
-
-  // 2. Translucent buzzing wings
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 240, 255, 0.65)';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-  ctx.lineWidth = 1;
-  // Left wing
-  ctx.save();
-  ctx.translate(-4, -2);
-  ctx.rotate(-0.45 + wingCycle * 0.35);
-  ctx.beginPath();
-  ctx.ellipse(-12, -6, 14, 5, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-  // Right wing
-  ctx.save();
-  ctx.translate(4, -2);
-  ctx.rotate(0.45 - wingCycle * 0.35);
-  ctx.beginPath();
-  ctx.ellipse(12, -6, 14, 5, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-  ctx.restore();
-
-  // 3. Abdomen (striped elongated tail holding sucked blood)
-  ctx.fillStyle = '#8b0024';
-  ctx.beginPath();
-  ctx.ellipse(0, 10, 5.5, 9, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Abdomen crimson stripes
-  ctx.strokeStyle = '#ff2b5a';
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(-4, 6); ctx.lineTo(4, 6);
-  ctx.moveTo(-5, 10); ctx.lineTo(5, 10);
-  ctx.moveTo(-3, 14); ctx.lineTo(3, 14);
-  ctx.stroke();
-
-  // 4. Thorax (dark chitin)
-  ctx.fillStyle = '#1a1f2c';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 5, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 5. Head
-  ctx.fillStyle = '#10141e';
-  ctx.beginPath();
-  ctx.arc(0, -6, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 6. Glowing red mosquito eyes
-  ctx.fillStyle = '#ff0055';
-  ctx.beginPath();
-  ctx.arc(-2.5, -7, 1.8, 0, Math.PI * 2);
-  ctx.arc(2.5, -7, 1.8, 0, Math.PI * 2);
-  ctx.fill();
-  // Eye catchlights
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(-2, -7.5, 0.6, 0, Math.PI * 2);
-  ctx.arc(3, -7.5, 0.6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 7. Sharp needle proboscis shooting blood
-  ctx.strokeStyle = '#d81159';
-  ctx.lineWidth = 1.8;
-  ctx.beginPath();
-  ctx.moveTo(0, -9);
-  ctx.lineTo(0, -20);
-  ctx.stroke();
-  // Blood bead at tip
-  ctx.fillStyle = '#ff0033';
-  ctx.beginPath();
-  ctx.arc(0, -20, 2, 0, Math.PI * 2);
-  ctx.fill();
-
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let val = matrix[r][c];
+      if (val === 4) {
+        // Pixelated flapping wings
+        let drawRow = wingFlap ? r : (r <= 4 ? r + 1 : r);
+        let color = wingFlap ? 'rgba(0, 240, 255, 0.95)' : 'rgba(0, 240, 255, 0.65)';
+        ctx.fillStyle = color;
+        ctx.fillRect(startX + c * pixelSize, startY + drawRow * pixelSize, pixelSize, pixelSize);
+        continue;
+      }
+      if (val !== 0) {
+        let color = '#374151';
+        if (val === 1) color = '#282f3d';
+        else if (val === 2) color = '#ef4444';
+        else if (val === 3) color = '#ff0055';
+        else if (val === 5) color = '#ffd23f';
+        ctx.fillStyle = color;
+        ctx.fillRect(startX + c * pixelSize, startY + r * pixelSize, pixelSize, pixelSize);
+      }
+    }
+  }
   ctx.restore();
 }
 

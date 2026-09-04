@@ -53,6 +53,7 @@
         <!-- Blurred peek at the photo underneath (§16) -->
         <div id="locked-photo-peek" class="locked-photo-peek" aria-label="Encrypted Celebration Photo">
           <img id="locked-peek-img" src="./photos/photo1.jpg" alt="" class="locked-peek-img">
+          <canvas id="locked-peek-canvas" class="locked-peek-canvas" width="160" height="160"></canvas>
           <div class="locked-peek-overlay">
             <span class="lock-icon">🔒</span>
             <span id="lock-tag" class="lock-tag">DECRYPTION IN PROGRESS</span>
@@ -84,9 +85,9 @@
         </button>
 
         <!-- Promising Fakeout Bypass Trigger (Left) -->
-        <button id="btn-bypass-peeker" class="bypass-peeker" type="button" aria-label="Emergency Splatfest Bypass Key" title="Instant Access Key">
-          <span class="bypass-key-icon">⚡</span>
-          <span class="bypass-key-label">BYPASS?</span>
+        <button id="btn-bypass-peeker" class="secret-peeker bypass-peeker" type="button" aria-label="Emergency Splatfest Bypass Key" title="???">
+          <div class="peeker-mosquito-sprite"></div>
+          <span class="peeker-squid-label peeker-bypass-label">BYPASS?</span>
         </button>
       </div>
     </section>
@@ -747,21 +748,40 @@
           <button id="btn-invaders-cancel" class="btn-game btn-invaders-giveup" type="button">ABORT BYPASS</button>
         </div>
 
-        <!-- Post-Game Comic Fakeout Reveal Screen -->
-        <div id="invaders-reveal-screen" class="invaders-reveal-screen" hidden>
-          <div class="reveal-inner-card">
-            <div class="reveal-comic-header">
-              <span class="reveal-emoji-spin">🦟😂</span>
-              <h3 class="reveal-title">⚠️ FAKEOUT DETECTED! ⚠️</h3>
-              <p class="reveal-subtitle">* YOU REALLY THOUGHT THAT WOULD WORK?! *</p>
+        <!-- Post-Game Deltarune Inspired Dialogue Box (§Fakeout Reveal) -->
+        <div id="invaders-reveal-screen" class="invaders-reveal-screen" hidden aria-modal="true" role="dialog">
+          <div class="deltarune-fakeout-wrapper">
+            <!-- Deltarune Encounter Header -->
+            <div class="deltarune-encounter-header">
+              <span class="deltarune-encounter-heart">♥</span>
+              <span class="deltarune-encounter-title">FAKEOUT DETECTED!</span>
+              <span class="deltarune-encounter-heart">♥</span>
             </div>
-            <div class="reveal-dialogue-box">
-              <p class="reveal-line">* Malachi: "Did you seriously think piloting a blood-sucking mosquito shooting red pellets at literal numbers 6 and 7 would crack the Splatfest Vault?!"</p>
-              <p class="reveal-line">* Malachi: "Bro... you just wasted high-grade bug spray on math homework! 😭"</p>
-              <p class="reveal-line">* Malachi: "The vault is hermetically sealed until September 8th. No backdoors, no bug bites, no shortcuts!"</p>
-              <p class="reveal-highlight">🎉 HAPPY BIRTHDAY ZAMAN! NOW WAIT PATIENTLY! ❤️</p>
+
+            <!-- Authentic Deltarune Dialogue Box -->
+            <div class="deltarune-dialogue-card">
+              <div class="deltarune-speaker-header">
+                <div id="deltarune-speaker-portrait" class="deltarune-speaker-portrait"></div>
+                <span class="deltarune-speaker-name">MALACHI</span>
+              </div>
+              <div class="deltarune-dialogue-body">
+                <div id="invaders-dialogue-text" class="deltarune-dialogue-lines">
+                  <p class="deltarune-dialogue-p">* Did you seriously think piloting a blood-sucking mosquito shooting red pellets at literal numbers 6 and 7 would crack the Splatfest Vault?!</p>
+                  <p class="deltarune-dialogue-p">* Bro... you just wasted high-grade bug spray on math homework! 😂</p>
+                  <p class="deltarune-dialogue-p">* The vault is hermetically sealed until September 8th. No backdoors, no bug bites, no shortcuts!</p>
+                  <p class="deltarune-dialogue-gold">* HAPPY BIRTHDAY ZAMAN! NOW WAIT PATIENTLY! ❤️</p>
+                </div>
+                <span class="deltarune-cursor" aria-hidden="true">▾</span>
+              </div>
             </div>
-            <button id="btn-invaders-accept-fakeout" class="btn-game btn-invaders-confirm" type="button">FINE, I'LL WAIT FOR SEPT 8TH! 😭</button>
+
+            <!-- Deltarune Action Selection Choice -->
+            <div class="deltarune-choice-wrapper">
+              <button id="btn-invaders-accept-fakeout" class="btn-deltarune-choice" type="button">
+                <span class="deltarune-choice-heart">♥</span>
+                <span class="deltarune-choice-text">FINE, I'LL WAIT FOR SEPT 8TH!</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
