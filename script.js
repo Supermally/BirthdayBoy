@@ -91,16 +91,16 @@ const sessionMemory = {
 const ROUNDS_CONFIG = {
   1: {
     title: 'ROUND 1: QUALIFIERS',
-    photoPath: './photos/round1_crop.jpg',
+    photoPath: './photos/round1_note.jpg',
     rivalSpeed: 380,
     huntProb: 0.20,
     noteSeal: 'ROUND 1 CLEAR',
     noteText: `* STAGE 1 CLEAR! 🎉
 
 * (The scent of fresh ink fills the air.)
-* Your turf-inking instincts are completely top tier!
+* I didn't know you were so inky 👀👀
 
-* Think you can hold your turf when the rival cranks up their ink output?`,
+* Think you can handle a little more squirt?`,
     buttonText: 'ENTER ROUND 2: CLASH!',
     nextAction: 'round_2',
   },
@@ -112,10 +112,10 @@ const ROUNDS_CONFIG = {
     noteSeal: 'ROUND 2 CLEAR',
     noteText: `* INCREDIBLE VICTORY! 🌟
 
-* You held the line through the Semi-Finals!
+* Ok maybe you can handle it...
 * (Seeing your territory expand fills you with DETERMINATION.)
 
-* Ready for the Championship Finals?`,
+* Ready for the Championship??`,
     buttonText: 'ENTER ROUND 3: FINALS!',
     nextAction: 'round_3',
   },
@@ -127,8 +127,8 @@ const ROUNDS_CONFIG = {
     noteSeal: 'CHAMPION',
     noteText: `* CHAMPIONSHIP VICTORY! 🏆
 
-* You conquered all three rounds!
-* But wait... The rival drops their Splattershot and refuses to accept defeat!
+* You finished all three rounds!
+* But wait... The rival refuses to accept defeat!
 * They're mutating into a MEGA RIVAL!
 
 * (A strange, powerful aura approaches...)`,
@@ -137,12 +137,13 @@ const ROUNDS_CONFIG = {
   },
   4: {
     title: 'GRAND FINALE',
-    photoPath: './photos/round4_crop.jpg',
+    photoPath: './photos/round4_note.jpg',
+    depthPath: './photos/round4_depth.png',
     noteSeal: 'SPECIAL AGENT',
     noteText: `Happy Birthday! 🎉
 
 I hope you enjoyed this little game I put together, and I hope you have an INKY birthday... okay, that was a little corny, but still. HAPPY BIRTHDAYY. 😭
-
+The image above was actually a pain in my ass to color grade look at this depth map (click the image)
 And now, to write everything I love about... you. :)
 
 I love the way you talk about your interests and how you just light up when you do. I love how caring and considerate you are. I love how dedicated you are to your academics, even if sometimes that dedication scares me a little. I love how always make an effort, even in the little things.
@@ -3858,6 +3859,26 @@ function transitionToNote() {
     }
   }
 
+  // Depth map lightbox: only active for Round 4
+  const depthLightbox = document.getElementById('depth-lightbox');
+  const depthBackdrop = document.getElementById('depth-lightbox-backdrop');
+  const depthImg = document.getElementById('depth-lightbox-img');
+  const noteThumbnail = document.getElementById('note-photo-thumbnail');
+
+  // Remove any old listeners to avoid duplicates on round re-entry
+  const openLightbox = () => { if (isGrandFinale && depthLightbox) depthLightbox.hidden = false; };
+  const closeLightbox = () => { if (depthLightbox) depthLightbox.hidden = true; };
+
+  if (noteThumbImg._depthHandler) noteThumbImg.removeEventListener('click', noteThumbImg._depthHandler);
+  if (depthBackdrop && depthBackdrop._depthHandler) depthBackdrop.removeEventListener('click', depthBackdrop._depthHandler);
+  if (depthImg && depthImg._depthHandler) depthImg.removeEventListener('click', depthImg._depthHandler);
+
+  noteThumbImg._depthHandler = openLightbox;
+  noteThumbImg.addEventListener('click', openLightbox);
+
+  if (depthBackdrop) { depthBackdrop._depthHandler = closeLightbox; depthBackdrop.addEventListener('click', closeLightbox); }
+  if (depthImg) { depthImg._depthHandler = closeLightbox; depthImg.addEventListener('click', closeLightbox); }
+
   showScreen('NOTE');
 }
 
@@ -5185,6 +5206,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initAlbumScreen();
   updateControllerKeyboardsVisibility();
   initAmbientParticles();
+
+  // Global image protection — prevent right-click save and drag
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.tagName === 'IMG') e.preventDefault();
+  });
+  document.addEventListener('dragstart', (e) => {
+    if (e.target.tagName === 'IMG') e.preventDefault();
+  });
 
   const heroArt = document.querySelector('.hero-squid-art');
   if (heroArt) {

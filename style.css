@@ -984,6 +984,56 @@ html, body {
   border-radius: 2px;
 }
 
+/* Clickable cursor hint on grand finale thumbnail */
+.note-card-wrapper.is-grand-finale .note-photo-thumbnail {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   DEPTH MAP LIGHTBOX (Round 4 click-to-reveal)
+   ========================================================================== */
+.depth-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.depth-lightbox[hidden] {
+  display: none;
+}
+
+.depth-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  cursor: pointer;
+}
+
+#depth-lightbox-img {
+  position: relative;
+  z-index: 1;
+  max-width: 90vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border: 3px solid #fff;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ==========================================================================
+   GLOBAL IMAGE PROTECTION
+   ========================================================================== */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* 3. Special Wax Seal Ribbon Badge */
 .note-card-wrapper.is-grand-finale .note-blush-seal {
   top: -14px;

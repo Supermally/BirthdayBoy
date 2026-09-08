@@ -295,7 +295,13 @@
       <div id="note-card-wrapper" class="note-card-wrapper">
         <!-- Persistent photo thumbnail callback (spec §5.4) -->
         <div id="note-photo-thumbnail" class="note-photo-thumbnail">
-          <img src="./photos/photo1.jpg" alt="Celebration memory" id="note-thumb-img">
+          <img src="./photos/round1_note.jpg" alt="Celebration memory" id="note-thumb-img" draggable="false" oncontextmenu="return false">
+        </div>
+
+        <!-- Depth map lightbox (Round 4 only) -->
+        <div id="depth-lightbox" class="depth-lightbox" hidden>
+          <div class="depth-lightbox-backdrop" id="depth-lightbox-backdrop"></div>
+          <img src="./photos/round4_depth.png" alt="Depth map" id="depth-lightbox-img" draggable="false" oncontextmenu="return false">
         </div>
 
         <!-- Exclusive note card with --blush badge allowed only here -->
