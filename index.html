@@ -352,12 +352,28 @@
                 <div id="boss-strike-cursor" class="strike-cursor"></div>
               </div>
               <p class="strike-prompt">STRIKE WHEN IN THE GOLD ZONE!</p>
+              <button type="button" id="boss-btn-strike" class="btn-strike-action">TAP TO STRIKE!</button>
             </div>
 
             <!-- Boss Attack Dodging Arena (Boss Fights Back!) -->
             <div id="boss-dodge-arena" class="boss-dodge-arena" hidden>
               <div id="boss-soul" class="boss-soul">♥</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Undertale Style Player Battle HUD -->
+        <div class="boss-player-hud" id="boss-player-hud" aria-label="Player Status">
+          <div class="player-hud-left">
+            <span class="player-hud-name">ZAMAN</span>
+            <span class="player-hud-lv">LV 1</span>
+          </div>
+          <div class="player-hud-hp-group">
+            <span class="player-hud-hp-label">HP</span>
+            <div class="player-hud-hp-bar">
+              <div id="player-hp-fill" class="player-hp-fill" style="width: 100%;"></div>
+            </div>
+            <span id="player-hp-text" class="player-hud-hp-text">16 / 16</span>
           </div>
         </div>
 

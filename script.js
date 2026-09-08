@@ -91,6 +91,7 @@ const sessionMemory = {
 const ROUNDS_CONFIG = {
   1: {
     title: 'ROUND 1: QUALIFIERS',
+    photoPath: './photos/round1_crop.jpg',
     rivalSpeed: 380,
     huntProb: 0.20,
     noteSeal: 'ROUND 1 CLEAR',
@@ -105,6 +106,7 @@ const ROUNDS_CONFIG = {
   },
   2: {
     title: 'ROUND 2: SEMI-FINALS',
+    photoPath: './photos/round2_crop.jpg',
     rivalSpeed: 320,
     huntProb: 0.28,
     noteSeal: 'ROUND 2 CLEAR',
@@ -119,6 +121,7 @@ const ROUNDS_CONFIG = {
   },
   3: {
     title: 'ROUND 3: FINALS',
+    photoPath: './photos/round3_crop.jpg',
     rivalSpeed: 270,
     huntProb: 0.35,
     noteSeal: 'CHAMPION',
@@ -134,6 +137,7 @@ const ROUNDS_CONFIG = {
   },
   4: {
     title: 'GRAND FINALE',
+    photoPath: './photos/round4_crop.jpg',
     noteSeal: 'SPECIAL AGENT',
     noteText: `Happy Birthday! 🎉
 
@@ -141,7 +145,7 @@ I hope you enjoyed this little game I put together, and I hope you have an INKY 
 
 And now, to write everything I love about... you. :)
 
-I love the way you talk about your interests and how you just light up when you do. I love how caring and considerate you are. I love how dedicated you are to your academics, even if sometimes that dedication scares me a little. I love how you always make an effort, even in the little things.
+I love the way you talk about your interests and how you just light up when you do. I love how caring and considerate you are. I love how dedicated you are to your academics, even if sometimes that dedication scares me a little. I love how always make an effort, even in the little things.
 
 And most of all, I love you.
 
@@ -834,6 +838,10 @@ const state = {
   bossDodgeActive: false,
   bossSelectedActionIndex: 0,
   bossSoulPos: { x: 50, y: 50 },
+  bossTurnBusy: false,
+  playerHp: 16,
+  playerMaxHp: 16,
+  soulInvulnerable: false,
 
   // Vessel Maker State
   selectedVesselIndex: 0,
@@ -849,8 +857,21 @@ window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',
 });
 
 function getActivePhoto() {
-  return state.currentRound >= 3 ? CONFIG.photoPath2 : CONFIG.photoPath1;
+  const roundData = ROUNDS_CONFIG[state.currentRound];
+  if (roundData && roundData.photoPath) {
+    return roundData.photoPath;
+  }
+  return state.currentRound >= 3 ? './photos/round4_crop.jpg' : './photos/round1_crop.jpg';
 }
+
+// Window test bridge
+window.__game = {
+  get state() { return state; },
+  ROUNDS_CONFIG,
+  getActivePhoto,
+  get mosquitoShipX() { return mosquitoShipX; },
+  set mosquitoShipX(v) { mosquitoShipX = v; }
+};
 
 // --- 7. DOM ELEMENTS ---
 const screens = {
@@ -939,15 +960,20 @@ const fightResultText = document.getElementById('fight-result-text');
 const tvStaticCut = document.getElementById('tv-static-cut');
 
 // Boss
+const bossBattleBox = document.getElementById('boss-battle-box');
 const bossHpFill = document.getElementById('boss-hp-fill');
 const bossHpHearts = document.getElementById('boss-hp-hearts');
 const bossSpriteLarge = document.getElementById('boss-sprite-large');
 const bossNarrativeText = document.getElementById('boss-narrative-text');
 const bossStrikeZone = document.getElementById('boss-strike-zone');
 const bossStrikeCursor = document.getElementById('boss-strike-cursor');
+const bossBtnStrike = document.getElementById('boss-btn-strike');
 const bossDodgeArena = document.getElementById('boss-dodge-arena');
 const bossSoul = document.getElementById('boss-soul');
+const bossActionMenu = document.getElementById('boss-action-menu');
 const bossBtnMercy = document.getElementById('boss-btn-mercy');
+const playerHpFill = document.getElementById('player-hp-fill');
+const playerHpText = document.getElementById('player-hp-text');
 const bossActionButtons = ['fight', 'act', 'item', 'mercy'];
 
 // Vessel Creation Elements
@@ -2201,18 +2227,42 @@ function setupSpaceInvadersFakeout() {
     };
   }
 
-  // Canvas tap / click to aim and fire
+  // Canvas tap / drag to steer and fire
   if (invadersCanvas) {
-    invadersCanvas.onpointerdown = (e) => {
+    let isDraggingMosquito = false;
+    const updateMosquitoTouch = (clientX) => {
       const rect = invadersCanvas.getBoundingClientRect();
-      const clickX = ((e.clientX - rect.left) / rect.width) * invadersCanvas.width;
-      if (clickX < mosquitoShipX - 25) {
-        mosquitoShipX = Math.max(20, mosquitoShipX - 25);
-      } else if (clickX > mosquitoShipX + 25) {
-        mosquitoShipX = Math.min(invadersCanvas.width - 20, mosquitoShipX + 25);
-      }
-      fireBloodPellet();
+      if (rect.width <= 0) return;
+      const touchX = ((clientX - rect.left) / rect.width) * invadersCanvas.width;
+      mosquitoShipX = Math.max(20, Math.min(invadersCanvas.width - 20, touchX));
     };
+
+    invadersCanvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      isDraggingMosquito = true;
+      try { invadersCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+      updateMosquitoTouch(e.clientX);
+      fireBloodPellet();
+    });
+
+    invadersCanvas.addEventListener('pointermove', (e) => {
+      if (!isDraggingMosquito) return;
+      e.preventDefault();
+      updateMosquitoTouch(e.clientX);
+    });
+
+    const endMosquitoDrag = () => {
+      isDraggingMosquito = false;
+    };
+    invadersCanvas.addEventListener('pointerup', endMosquitoDrag);
+    invadersCanvas.addEventListener('pointercancel', endMosquitoDrag);
+
+    // Touch fallback
+    invadersCanvas.addEventListener('touchmove', (e) => {
+      if (!e.touches || !e.touches[0]) return;
+      e.preventDefault();
+      updateMosquitoTouch(e.touches[0].clientX);
+    }, { passive: false });
   }
 }
 
@@ -2425,11 +2475,13 @@ function spaceInvadersGameLoop() {
     const p = mosquitoBloodPellets[i];
     p.y += p.vy;
 
-    // Draw Blood Pellet (crimson tear drop)
-    ctx.save();
+    // Draw Blood Pellet (crimson tear drop - zero-lag without expensive shadowBlur)
+    ctx.fillStyle = 'rgba(255, 0, 85, 0.4)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size + 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.fillStyle = '#ff0033';
-    ctx.shadowColor = '#ff0055';
-    ctx.shadowBlur = 6;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
@@ -2444,7 +2496,6 @@ function spaceInvadersGameLoop() {
     ctx.beginPath();
     ctx.arc(p.x - 1, p.y - 1, 1.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
 
     // Check hit against invaders
     let hit = false;
@@ -2465,8 +2516,8 @@ function spaceInvadersGameLoop() {
         sound.playPlayerInk();
         triggerHaptic(30);
 
-        // Spawn crimson blood & digital burst particles
-        for (let k = 0; k < 12; k++) {
+        // Spawn crimson blood & digital burst particles (optimized 6 particles)
+        for (let k = 0; k < 6; k++) {
           const angle = Math.random() * Math.PI * 2;
           const spd = 1.5 + Math.random() * 3.5;
           invaderSplatterParticles.push({
@@ -3170,28 +3221,61 @@ function resolveFightStrike() {
 }
 
 // --- 17. BOSS BATTLE: COUNTER-ATTACKS & GREEN MERCY ---
+function updateBossPlayerHpUI() {
+  if (playerHpFill) {
+    const pct = Math.max(0, (state.playerHp / state.playerMaxHp) * 100);
+    playerHpFill.style.width = `${pct}%`;
+  }
+  if (playerHpText) {
+    playerHpText.textContent = `${state.playerHp} / ${state.playerMaxHp}`;
+  }
+}
+
+function lockBossMenu(locked) {
+  state.bossTurnBusy = locked;
+  if (bossActionMenu) {
+    if (locked) {
+      bossActionMenu.classList.add('menu-locked');
+    } else {
+      bossActionMenu.classList.remove('menu-locked');
+    }
+  }
+  document.querySelectorAll('.boss-menu-btn').forEach((btn) => {
+    btn.disabled = locked;
+  });
+}
+
 function startBossBattle() {
   state.bossHealth = 3;
+  state.playerHp = 16;
   state.bossActItemCount = 0;
   state.bossSelectedActionIndex = 0;
+  state.soulInvulnerable = false;
+  
   updateBossHealthUI();
+  updateBossPlayerHpUI();
   updateBossMercyButtonUI();
   updateBossMenuSelection();
+  initBossDodgeTouchControls();
+  
   showScreen('BOSS');
 
   sound.startBattleMusic(true);
   bossSpriteLarge.innerHTML = generateSVGFromMatrix(RIVAL_SPRITE_PIXELS, 'var(--rival-color)');
 
+  lockBossMenu(true);
   const bossIntro = `* MEGA RIVAL INKLING blocks your final gift!\n* "You won all three rounds, Zaman... but you won't pass me!"`;
-  typeBossText(bossIntro);
+  typeBossText(bossIntro, () => {
+    lockBossMenu(false);
+  });
   initBossActionMenu();
 }
 
 function updateBossHealthUI() {
   const pct = Math.max(0, (state.bossHealth / state.bossMaxHealth) * 100);
-  bossHpFill.style.width = `${pct}%`;
+  if (bossHpFill) bossHpFill.style.width = `${pct}%`;
   const hearts = '♥'.repeat(Math.max(0, state.bossHealth));
-  bossHpHearts.textContent = hearts || '♡';
+  if (bossHpHearts) bossHpHearts.textContent = hearts || '♡';
 }
 
 function updateBossMercyButtonUI() {
@@ -3222,9 +3306,9 @@ function typeBossText(text, callback) {
       bossNarrativeText.textContent += text[i];
       if (text[i] !== ' ' && text[i] !== '\n') sound.playTextBlip();
       i++;
-      setTimeout(type, state.reducedMotion ? 0 : 24);
+      setTimeout(type, state.reducedMotion ? 0 : 22);
     } else if (callback) {
-      setTimeout(callback, 400);
+      setTimeout(callback, 350);
     }
   }
   type();
@@ -3233,6 +3317,7 @@ function typeBossText(text, callback) {
 function initBossActionMenu() {
   document.querySelectorAll('.boss-menu-btn').forEach((btn, index) => {
     btn.onclick = () => {
+      if (state.bossTurnBusy) return;
       state.bossSelectedActionIndex = index;
       updateBossMenuSelection();
       handleBossAction(btn.dataset.action);
@@ -3241,6 +3326,9 @@ function initBossActionMenu() {
 }
 
 function handleBossAction(action) {
+  if (state.bossTurnBusy) return;
+  lockBossMenu(true);
+
   sound.resume();
   sound.playTextBlip();
 
@@ -3271,8 +3359,10 @@ function handleBossAction(action) {
     });
   } else if (action === 'mercy') {
     if (state.bossActItemCount < 2) {
-      typeBossText('* The rival is still on guard!\n* Try ACTing or sharing an ITEM first!');
       sound.playContestAlert();
+      typeBossText('* The rival is still on guard!\n* Try ACTing or sharing an ITEM first!', () => {
+        lockBossMenu(false);
+      });
     } else {
       onBossMercySuccess();
     }
@@ -3303,14 +3393,24 @@ function startBossSlider() {
 
   state.strikeAnimFrame = requestAnimationFrame(animateBossSlider);
 
-  bossStrikeZone.onclick = resolveBossStrike;
+  const onStrikePress = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    resolveBossStrike();
+  };
+
+  bossStrikeZone.onpointerdown = onStrikePress;
+  if (bossBtnStrike) bossBtnStrike.onpointerdown = onStrikePress;
 }
 
 function resolveBossStrike() {
   if (bossStrikeZone.hasAttribute('hidden')) return;
   cancelAnimationFrame(state.strikeAnimFrame);
   bossStrikeZone.setAttribute('hidden', '');
-  bossStrikeZone.onclick = null;
+  bossStrikeZone.onpointerdown = null;
+  if (bossBtnStrike) bossBtnStrike.onpointerdown = null;
 
   // Center sweet spot is ~50%
   const distFromCenter = Math.abs(state.strikeCursorPos - 50);
@@ -3329,7 +3429,7 @@ function resolveBossStrike() {
     }
 
     // Floating damage text
-    showBossDamagePopup("-1 HP!");
+    showBossDamagePopup("-1 HP!", '#ffd23f');
 
     if (state.bossHealth <= 0) {
       setTimeout(onBossDefeated, 700);
@@ -3340,24 +3440,121 @@ function resolveBossStrike() {
     }
   } else {
     sound.playContestAlert();
-    showBossDamagePopup("GRAZE!");
+    showBossDamagePopup("GRAZE!", '#ff6b4a');
     typeBossText('* The strike was off-center! Mega Rival retaliates!', () => {
       triggerBossCounterAttack();
     });
   }
 }
 
-function showBossDamagePopup(text) {
+function showBossDamagePopup(text, color = '#ffd23f') {
   const popup = document.createElement('div');
   popup.className = 'boss-damage-popup';
   popup.textContent = text;
-  const stage = document.querySelector('.boss-stage');
+  popup.style.color = color;
+  const stage = document.querySelector('.boss-sprite-stage') || document.querySelector('.boss-stage') || bossBattleBox;
   if (stage) stage.appendChild(popup);
   setTimeout(() => popup.remove(), 850);
 }
 
+// 60fps Desktop Keyboard Velocity Movement Loop
+const bossSoulHeldKeys = { left: false, right: false, up: false, down: false };
+let bossSoulVelocityLoopId = null;
+
+function startBossSoulVelocityLoop() {
+  if (bossSoulVelocityLoopId) return;
+  function step() {
+    if (!state.bossDodgeActive) {
+      bossSoulVelocityLoopId = null;
+      return;
+    }
+    const speed = 1.9; // Responsive, smooth 114%/sec
+    let moved = false;
+    if (bossSoulHeldKeys.left) {
+      state.bossSoulPos.x = Math.max(8, state.bossSoulPos.x - speed);
+      moved = true;
+    }
+    if (bossSoulHeldKeys.right) {
+      state.bossSoulPos.x = Math.min(92, state.bossSoulPos.x + speed);
+      moved = true;
+    }
+    if (bossSoulHeldKeys.up) {
+      state.bossSoulPos.y = Math.max(12, state.bossSoulPos.y - speed);
+      moved = true;
+    }
+    if (bossSoulHeldKeys.down) {
+      state.bossSoulPos.y = Math.min(88, state.bossSoulPos.y + speed);
+      moved = true;
+    }
+    if (moved) updateSoulPosition();
+    bossSoulVelocityLoopId = requestAnimationFrame(step);
+  }
+  bossSoulVelocityLoopId = requestAnimationFrame(step);
+}
+
+// Mobile Touch Controls for Boss Soul
+let isBossTouchInitialized = false;
+function initBossDodgeTouchControls() {
+  if (!bossDodgeArena || isBossTouchInitialized) return;
+  isBossTouchInitialized = true;
+
+  let isDraggingSoul = false;
+
+  const moveSoulTo = (clientX, clientY) => {
+    if (!state.bossDodgeActive) return;
+    const rect = bossDodgeArena.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    // 16px upward offset so player's thumb doesn't occlude soul
+    const targetY = clientY - 16;
+    const xPct = Math.max(8, Math.min(92, ((clientX - rect.left) / rect.width) * 100));
+    const yPct = Math.max(12, Math.min(88, ((targetY - rect.top) / rect.height) * 100));
+
+    state.bossSoulPos.x = xPct;
+    state.bossSoulPos.y = yPct;
+    updateSoulPosition();
+  };
+
+  bossDodgeArena.addEventListener('pointerdown', (e) => {
+    if (!state.bossDodgeActive) return;
+    e.preventDefault();
+    isDraggingSoul = true;
+    try { bossDodgeArena.setPointerCapture(e.pointerId); } catch (_) {}
+    moveSoulTo(e.clientX, e.clientY);
+  });
+
+  bossDodgeArena.addEventListener('pointermove', (e) => {
+    if (!state.bossDodgeActive || !isDraggingSoul) return;
+    e.preventDefault();
+    moveSoulTo(e.clientX, e.clientY);
+  });
+
+  const endDrag = (e) => {
+    isDraggingSoul = false;
+  };
+
+  bossDodgeArena.addEventListener('pointerup', endDrag);
+  bossDodgeArena.addEventListener('pointercancel', endDrag);
+
+  // Touch fallback for older webviews
+  bossDodgeArena.addEventListener('touchmove', (e) => {
+    if (!state.bossDodgeActive || !e.touches || !e.touches[0]) return;
+    e.preventDefault();
+    moveSoulTo(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+}
+
 function triggerBossCounterAttack() {
-  typeBossText('* MEGA RIVAL counters with an Inkstrike barrage!', () => {
+  let introLine = '* MEGA RIVAL counters with an Inkstrike barrage!';
+  if (state.bossHealth === 3) {
+    introLine = '* MEGA RIVAL counters with Sweeping Ink Streams!';
+  } else if (state.bossHealth === 2) {
+    introLine = '* MEGA RIVAL counters with Splat Bomb Crossfire!';
+  } else if (state.bossHealth === 1) {
+    introLine = '* MEGA RIVAL unleashes their ultimate Ink Cyclone!';
+  }
+
+  typeBossText(introLine, () => {
     bossDodgeArena.removeAttribute('hidden');
     state.bossDodgeActive = true;
     state.bossSoulPos = { x: 50, y: 50 };
@@ -3365,56 +3562,98 @@ function triggerBossCounterAttack() {
 
     const activeBullets = [];
 
-    function spawnBullet(yPct, speed = 1.3, delay = 0) {
+    function spawnBullet(yPct, speed = 1.3, delay = 0, xStart = 100, dir = -1) {
       setTimeout(() => {
         if (!state.bossDodgeActive) return;
         const b = document.createElement('div');
         b.className = 'ink-bullet';
         b.style.top = `${yPct}%`;
-        b.style.left = '100%';
+        b.style.left = `${xStart}%`;
         bossDodgeArena.appendChild(b);
-        activeBullets.push({ el: b, x: 100, y: yPct, speed });
+        activeBullets.push({ el: b, x: xStart, y: yPct, speed, dir, baseY: yPct });
       }, delay);
     }
 
-    // Wave 1: Top & Bottom (Middle 35-65% is safe!)
-    spawnBullet(16, 1.3, 100);
-    spawnBullet(84, 1.3, 100);
+    // --- PHASE SPECIFIC ATTACK PATTERNS ---
+    if (state.bossHealth === 3) {
+      // Phase 1: Sweeping Ink Streams (alternating top/bottom with safe middle lanes)
+      spawnBullet(18, 1.3, 100);
+      spawnBullet(82, 1.3, 100);
 
-    // Wave 2: Middle lane (Top and Bottom lanes are safe!)
-    spawnBullet(42, 1.4, 850);
-    spawnBullet(58, 1.4, 850);
+      spawnBullet(50, 1.4, 850);
 
-    // Wave 3: Staggered diagonal streams with generous weaving gaps
-    spawnBullet(24, 1.5, 1600);
-    spawnBullet(76, 1.5, 1850);
+      spawnBullet(28, 1.5, 1600);
+      spawnBullet(72, 1.5, 1850);
+    } else if (state.bossHealth === 2) {
+      // Phase 2: Splat Bomb Crossfire (horizontal streams with tight safe weaving)
+      spawnBullet(22, 1.4, 80);
+      spawnBullet(78, 1.4, 80);
+
+      spawnBullet(48, 1.5, 750);
+      spawnBullet(20, 1.5, 1100);
+      spawnBullet(80, 1.5, 1100);
+
+      spawnBullet(38, 1.6, 1750);
+      spawnBullet(62, 1.6, 1950);
+    } else {
+      // Phase 3: Mega Ink Cyclone (continuous rhythmic undulating waves)
+      const waveY = [20, 75, 32, 68, 48, 22, 78, 50];
+      waveY.forEach((y, idx) => {
+        spawnBullet(y, 1.55, 100 + idx * 270);
+      });
+    }
 
     let dodgeTime = 0;
     const dodgeInterval = setInterval(() => {
       dodgeTime += 40;
       activeBullets.forEach(b => {
-        b.x -= b.speed * 2.2;
+        b.x += b.dir * b.speed * 2.2;
         b.el.style.left = `${b.x}%`;
 
-        // Check distance to soul
+        // Check collision distance to player soul
         const dx = Math.abs(b.x - state.bossSoulPos.x);
         const dy = Math.abs(b.y - state.bossSoulPos.y);
-        if (dx < 7 && dy < 10) {
-          if (bossSoul) {
-            bossSoul.style.filter = 'drop-shadow(0 0 10px #ff0055)';
-            setTimeout(() => { if (bossSoul) bossSoul.style.filter = ''; }, 120);
+        if (dx < 7 && dy < 11) {
+          if (!state.soulInvulnerable) {
+            // Take damage!
+            state.soulInvulnerable = true;
+            state.playerHp = Math.max(1, state.playerHp - 4);
+            updateBossPlayerHpUI();
+
+            sound.playContestAlert();
+            triggerHaptic([40, 50, 80]);
+
+            if (bossSoul) bossSoul.classList.add('soul-invulnerable');
+            if (bossBattleBox) {
+              bossBattleBox.classList.add('box-shake');
+              setTimeout(() => { if (bossBattleBox) bossBattleBox.classList.remove('box-shake'); }, 280);
+            }
+
+            // Damage popup on soul
+            showBossDamagePopup('-4 HP', '#ff4081');
+
+            setTimeout(() => {
+              state.soulInvulnerable = false;
+              if (bossSoul) bossSoul.classList.remove('soul-invulnerable');
+            }, 600);
           }
-          sound.playContestAlert();
-          triggerHaptic(20);
         }
       });
 
-      if (dodgeTime >= 2900) {
+      if (dodgeTime >= 3100) {
         clearInterval(dodgeInterval);
         state.bossDodgeActive = false;
         bossDodgeArena.setAttribute('hidden', '');
         activeBullets.forEach(b => b.el.remove());
-        typeBossText('* You skillfully dodged the ink barrage!');
+
+        // Flavor conclusion based on remaining HP
+        const finishText = state.playerHp === 1
+          ? '* (You clung to 1 HP with pure DETERMINATION!)\n* What will you do next?'
+          : '* You skillfully endured the ink barrage!\n* What will you do next?';
+
+        typeBossText(finishText, () => {
+          lockBossMenu(false);
+        });
       }
     }, 40);
   });
@@ -4545,9 +4784,27 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  if (state.currentScreen === 'REVEAL') {
+    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
+      e.preventDefault();
+      const btnOpen = document.getElementById('btn-open-note');
+      if (btnOpen) btnOpen.click();
+      return;
+    }
+  }
+
+  if (state.currentScreen === 'NOTE') {
+    if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
+      e.preventDefault();
+      const btnReplayEl = document.getElementById('btn-replay');
+      if (btnReplayEl) btnReplayEl.click();
+      return;
+    }
+  }
+
   if (state.currentScreen === 'BOSS') {
     if (!bossStrikeZone.hasAttribute('hidden')) {
-      if (e.code === 'Enter' || e.code === 'Space') {
+      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
         e.preventDefault();
         resolveBossStrike();
         return;
@@ -4555,28 +4812,31 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (state.bossDodgeActive) {
-      if (e.code === 'ArrowLeft') state.bossSoulPos.x = Math.max(10, state.bossSoulPos.x - 7);
-      if (e.code === 'ArrowRight') state.bossSoulPos.x = Math.min(90, state.bossSoulPos.x + 7);
-      if (e.code === 'ArrowUp') state.bossSoulPos.y = Math.max(10, state.bossSoulPos.y - 7);
-      if (e.code === 'ArrowDown') state.bossSoulPos.y = Math.min(90, state.bossSoulPos.y + 7);
-      updateSoulPosition();
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') bossSoulHeldKeys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') bossSoulHeldKeys.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') bossSoulHeldKeys.up = true;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') bossSoulHeldKeys.down = true;
+      startBossSoulVelocityLoop();
+      e.preventDefault();
       return;
     }
 
-    if (e.code === 'ArrowRight') {
-      e.preventDefault();
-      state.bossSelectedActionIndex = (state.bossSelectedActionIndex + 1) % 4;
-      updateBossMenuSelection();
-      sound.playTextBlip();
-    } else if (e.code === 'ArrowLeft') {
-      e.preventDefault();
-      state.bossSelectedActionIndex = (state.bossSelectedActionIndex + 3) % 4;
-      updateBossMenuSelection();
-      sound.playTextBlip();
-    } else if (e.code === 'Enter' || e.code === 'Space') {
-      e.preventDefault();
-      const action = bossActionButtons[state.bossSelectedActionIndex];
-      handleBossAction(action);
+    if (!state.bossTurnBusy) {
+      if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        state.bossSelectedActionIndex = (state.bossSelectedActionIndex + 1) % 4;
+        updateBossMenuSelection();
+        sound.playTextBlip();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        state.bossSelectedActionIndex = (state.bossSelectedActionIndex + 3) % 4;
+        updateBossMenuSelection();
+        sound.playTextBlip();
+      } else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
+        e.preventDefault();
+        const action = bossActionButtons[state.bossSelectedActionIndex];
+        handleBossAction(action);
+      }
     }
     return;
   }
@@ -4609,6 +4869,13 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
+  if (state.currentScreen === 'BOSS') {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') bossSoulHeldKeys.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') bossSoulHeldKeys.right = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') bossSoulHeldKeys.up = false;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') bossSoulHeldKeys.down = false;
+  }
+
   if (modalInvadersFakeout && !modalInvadersFakeout.hasAttribute('hidden')) {
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
       mosquitoLeftPressed = false;
@@ -5026,5 +5293,17 @@ document.addEventListener('DOMContentLoaded', () => {
     triggerTier0UnlockTransition();
   } else {
     initBirthdayGate();
+  }
+
+  if (window.__game) {
+    Object.assign(window.__game, {
+      startBossBattle,
+      updateBossPlayerHpUI,
+      openSpaceInvadersFakeout,
+      closeSpaceInvadersFakeout,
+      showScreen,
+      transitionToReveal,
+      transitionToNote
+    });
   }
 });
