@@ -525,11 +525,10 @@ html, body {
 .tile-photo {
   position: absolute;
   inset: 0;
-  background-image: url('./photos/round1_crop.jpg');
+  background-image: url('./photos/minigame_bg.jpg');
   background-repeat: no-repeat;
   background-size: var(--grid-size) var(--grid-size);
   background-position: calc(-1 * var(--col) * var(--cell-size)) calc(-1 * var(--row) * var(--cell-size));
-  image-rendering: pixelated;
   opacity: 0;
 }
 

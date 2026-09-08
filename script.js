@@ -2889,8 +2889,6 @@ function typeVesselRejectionText(text, callback) {
 function buildGrid() {
   gridContainer.innerHTML = '';
   state.tileOwnership.clear();
-  const currentPhoto = getActivePhoto();
-
   for (let r = 0; r < state.gridSize; r++) {
     for (let c = 0; c < state.gridSize; c++) {
       const tile = document.createElement('div');
@@ -2904,7 +2902,7 @@ function buildGrid() {
       photoSlice.className = 'tile-photo';
       photoSlice.style.setProperty('--row', r);
       photoSlice.style.setProperty('--col', c);
-      photoSlice.style.backgroundImage = `url('${currentPhoto}')`;
+      photoSlice.style.backgroundImage = `url('./photos/minigame_bg.jpg')`;
 
       const inkWash = document.createElement('div');
       inkWash.className = 'tile-ink-wash';
@@ -3806,7 +3804,6 @@ function transitionToReveal() {
   statTime.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
   statMvp.textContent = `${CONFIG.mvpTitle} MVP`;
 
-  const currentPhoto = getActivePhoto();
   revealMosaic.innerHTML = '';
   for (let r = 0; r < state.gridSize; r++) {
     for (let c = 0; c < state.gridSize; c++) {
@@ -3819,7 +3816,7 @@ function transitionToReveal() {
       photoSlice.className = 'tile-photo';
       photoSlice.style.setProperty('--row', r);
       photoSlice.style.setProperty('--col', c);
-      photoSlice.style.backgroundImage = `url('${currentPhoto}')`;
+      photoSlice.style.backgroundImage = `url('./photos/minigame_bg.jpg')`;
 
       const inkWash = document.createElement('div');
       inkWash.className = 'tile-ink-wash';
